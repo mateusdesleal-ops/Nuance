@@ -276,6 +276,7 @@ const FEATURES = [
   ['gravacao','Gravação e transcrição','Transcrição ao vivo da conversa','durante'],
   ['ekman','Painel Ekman','Indícios das 7 emoções básicas','durante'],
   ['incongruencia','Alerta de incongruência','Fala positiva + expressão negativa','durante'],
+  ['rapport','Abertura e rapport','Agradecimento e quebra-gelo no início','durante'],
   ['sugestoes','Perguntas sugeridas','Copiloto sugere a próxima pergunta','durante'],
   ['checklist','Checklist de competências','O que já foi coberto e o que falta','durante'],
   ['marcacao','Marcação rápida','Suas observações com um toque','durante'],
@@ -351,6 +352,7 @@ function seed(){
 function load(){try{const r=localStorage.getItem('nuance_v1');if(!r)return null;const s=JSON.parse(r);
   if(!s.templates||!s.templates.length) s.templates=[defaultTemplate()];
   if(!s.settings.site) s.settings.site='https://mateusdesleal-ops.github.io/Nuance/';
+  s.interviews.forEach(i=>{if(i.features&&i.features.rapport===undefined)i.features.rapport=true});
   s.interviews.forEach(i=>i.competencias.forEach(c=>{if(c.nivel===undefined){c.nivel=c.nota>=4?'tem':c.nota===3?'melhorar':c.nota>0?'nao':null;c.sug=c.sug||null}}));return s}catch(e){return null}}
 function save(){try{localStorage.setItem('nuance_v1',JSON.stringify(S))}catch(e){}}
 function cur(){return S.interviews.find(i=>i.id===curId)||(candRoom&&candRoom.id===curId?candRoom:null)}
@@ -444,7 +446,7 @@ function vHome(){
       <div class="row">${i.status==='concluida'?`<button class="btn sm" data-go="parecer" data-id="${i.id}">Ver parecer</button>`:`<button class="btn sm" data-go="convite" data-id="${i.id}">Convite</button><button class="btn sm dark" data-go="sala" data-id="${i.id}">Abrir sala</button>`}</div></div>`).join(''):'<p class="muted">Crie sua primeira entrevista.</p>'}
   </section>`;
 }
-function icon(n){const p={plus:'M12 5v14M5 12h14',key:'M15 7a3 3 0 1 1-3 3M12 10l-7 7v3h3l1-1v-2h2v-2h2l1-1',cam:'M15 10l5-3v10l-5-3M3 7h12v10H3z',play:'M7 5l12 7-12 7z',pause:'M7 5h4v14H7zM13 5h4v14h-4z',spark:'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z',copy:'M9 9h11v11H9zM5 15V4h11',check:'M5 12l5 5 9-10',stop:'M6 6h12v12H6z',next:'M5 5l9 7-9 7zM17 5v14'}[n]||'';return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${p}"/></svg>`}
+function icon(n){const p={plus:'M12 5v14M5 12h14',key:'M15 7a3 3 0 1 1-3 3M12 10l-7 7v3h3l1-1v-2h2v-2h2l1-1',cam:'M15 10l5-3v10l-5-3M3 7h12v10H3z',play:'M7 5l12 7-12 7z',pause:'M7 5h4v14H7zM13 5h4v14h-4z',spark:'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z',copy:'M9 9h11v11H9zM5 15V4h11',check:'M5 12l5 5 9-10',stop:'M6 6h12v12H6z',next:'M5 5l9 7-9 7zM17 5v14',refresh:'M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7'}[n]||'';return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${p}"/></svg>`}
 
 /* ---------- NOVA ENTREVISTA ---------- */
 let draft=null;
@@ -655,7 +657,9 @@ function vSala(){
       ${F.marcacao?`<div class="panel"><div class="panel-h"><h3>Marcação rápida</h3><span class="xs muted">fica ligada ao momento da conversa</span></div><div class="marks">${MARKS.map(m=>`<button class="btn sm ghost" data-mk="${esc(m)}">+ ${esc(m)}</button>`).join('')}<button class="btn sm ghost" id="bNote">+ Nota</button></div><div id="mkList" class="small muted" style="margin-top:8px"></div></div>`:''}
     </div>
     <div class="stack">
-      ${F.sugestoes?`<div class="ask"><div class="row"><b class="small">Pergunte agora</b><span class="spacer"></span><button class="btn sm" id="bSug" style="background:#fff;border-color:#B8CDE2">${icon('spark')} Nova sugestão</button></div><div class="q" id="sugQ">Comece pela abertura: "${esc((i.competencias[0]?.perguntas||[])[0]||'Conte um pouco da sua trajetória.')}"</div><div class="small" id="sugWhy" style="opacity:.85"></div></div>`:''}
+      ${(F.sugestoes||F.rapport)?`<div class="ask"><div class="row"><b class="small" id="askTitle">${F.rapport?'Abertura e rapport':'Pergunte agora'}</b><span class="spacer"></span>${F.rapport?`<button class="btn sm" id="bIce" style="background:#fff;border-color:#B8CDE2">${icon('refresh')} Outro quebra-gelo</button>`:''}${F.sugestoes?`<button class="btn sm" id="bSug" style="background:#fff;border-color:#B8CDE2">${icon('spark')} ${F.rapport?'Ir para as perguntas':'Nova sugestão'}</button>`:''}</div>
+        ${F.rapport?`<div id="rapBox" class="small" style="margin-top:8px"><b>1. Agradeça:</b> "${esc(thanksLine(i))}"<div style="margin-top:6px"><b>2. Quebra-gelo:</b></div></div>`:''}
+        <div class="q" id="sugQ">${F.rapport?esc(iceLocal(i,0)):`Comece pela abertura: "${esc((i.competencias[0]?.perguntas||[])[0]||'Conte um pouco da sua trajetória.')}"`}</div><div class="small" id="sugWhy" style="opacity:.85">${F.rapport?'Puxe um assunto leve, perto do contexto da entrevista, antes das perguntas.':''}</div></div>`:''}
       <div class="tabs" role="tablist" aria-label="Painéis">
         ${F.ekman?'<button role="tab" data-tab="ind">Indícios</button>':''}
         ${(F.checklist||F.roteiro||(i.cv&&F.curriculo))?'<button role="tab" data-tab="rot">Roteiro</button>':''}
@@ -695,7 +699,8 @@ function vSala(){
   $('#bOnline').onclick=()=>{if(room.mode==='online'){stopCam();return}startOnline()};
   $('#bEnd').onclick=()=>confirmBox('Encerrar a entrevista?','Encerrar',endInterview);
   const nb=$('#bNextBlk'); if(nb) nb.onclick=()=>{room.block=Math.min(room.block+1,i.competencias.length-1);room.blockT0=room.elapsed;updateBlock();renderRoteiro()};
-  const sg=$('#bSug'); if(sg) sg.onclick=suggest;
+  const sg=$('#bSug'); if(sg) sg.onclick=()=>{exitRapport();suggest()};
+  room.iceIdx=0; const bi=$('#bIce'); if(bi) bi.onclick=nextIce;
   app.querySelectorAll('[data-mk]').forEach(b=>b.onclick=()=>addMark(b.dataset.mk));
   const bn=$('#bNote'); if(bn) bn.onclick=()=>modal(`<h3>Nota rápida</h3><label class="sr" for="noteIn">Nota</label><textarea id="noteIn" placeholder="Ex.: confirmar datas do último emprego"></textarea><p id="noteErr" class="small" style="color:#A3301E;min-height:18px"></p><div class="row"><span class="spacer"></span><button class="btn ghost" data-m="no">Cancelar</button><button class="btn primary" data-m="ok">Salvar</button></div>`,b=>{const ta=b.querySelector('#noteIn');ta.focus();ta.oninput=()=>b.querySelector('#noteErr').textContent='';b.querySelector('[data-m=no]').onclick=closeModal;b.querySelector('[data-m=ok]').onclick=()=>{if(!ta.value.trim()){b.querySelector('#noteErr').textContent='Escreva a nota primeiro.';return}addMark('Nota',ta.value.trim());closeModal()}});
   const spk=$('#bSpk'); if(spk) spk.onclick=()=>{room.speaker=room.speaker==='C'?'R':'C';spk.textContent='Falando: '+(room.speaker==='C'?'candidato':'você')};
@@ -816,7 +821,7 @@ function addIndicio(emo,v,dur){
   const ind={t,emo,v:+v.toFixed(2),micro:dur<500,inc,lineIdx};
   i.indicios.push(ind); save(); renderInds(); if(inc) renderTranscript();
   if(room&&room.flagTab) room.flagTab('ind');
-  if(inc&&i.features.sugestoes){setSuggestion(EMO[emo].dica.split(': ').slice(1).join(': ').replace(/^"|"$/g,'')||EMO[emo].dica,'Incongruência: fala positiva com indício de '+EMO[emo].nome.toLowerCase()+'.')}
+  if(inc&&i.features.sugestoes){exitRapport();setSuggestion(EMO[emo].dica.split(': ').slice(1).join(': ').replace(/^"|"$/g,'')||EMO[emo].dica,'Incongruência: fala positiva com indício de '+EMO[emo].nome.toLowerCase()+'.')}
 }
 function renderInds(){
   const box=$('#inds'); if(!box)return; const i=cur();
@@ -843,6 +848,27 @@ function updateBlock(){const i=cur();const n=$('#blkName');if(n)n.textContent=(r
 function addMark(label,note){const i=cur();i.marks.push({t:now(),label,note:note||''});save();renderMarks();toast('Marcado em '+fmt(now()))}
 function renderMarks(){const b=$('#mkList');if(!b)return;const i=cur();b.innerHTML=i.marks.slice(-5).reverse().map(m=>`<div>${fmt(m.t)} · <b style="color:var(--ink)">${esc(m.label)}</b>${m.note?' — '+esc(m.note):''}</div>`).join('')}
 function setSuggestion(q,why){const a=$('#sugQ'),b=$('#sugWhy');if(!a)return;a.textContent=q;b.textContent=why||''}
+function thanksLine(i){const n=i.candidato.split(' ')[0];return `Olá, ${n}! Muito obrigado por separar esse tempo para conversar com a gente. Fique à vontade: a ideia é ser uma conversa.`}
+function iceLocal(i,k){const emp=S.settings.empresa;const L=[
+  `Antes de começarmos: como você ficou sabendo da vaga de ${i.vaga}?`,
+  `Conseguiu se conectar tranquilo? Está falando de qual cidade hoje?`,
+  `O que você já conhecia da ${emp} antes do processo?`,
+  `Como tem sido sua semana até aqui?`,
+  `O que te fez se interessar por essa área?`];return L[k%L.length]}
+function exitRapport(){const r=$('#rapBox');if(!r)return;r.remove();const t=$('#askTitle');if(t)t.textContent='Pergunte agora';const b=$('#bIce');if(b)b.remove();const s=$('#bSug');if(s)s.innerHTML=icon('spark')+' Nova sugestão'}
+async function nextIce(){
+  const i=cur(), b=$('#bIce'); if(!b||room.iceLoading)return; room.iceIdx=(room.iceIdx||0)+1;
+  if(!sampleFn){setSuggestion(iceLocal(i,room.iceIdx),'Puxe um assunto leve, perto do contexto da entrevista, antes das perguntas.');return}
+  room.iceLoading=true; b.innerHTML='<span class="spin"></span>';
+  try{const r=await ai(`Sugira UM quebra-gelo curto, natural e cordial, em português do Brasil, para o recrutador puxar no começo de uma entrevista, antes das perguntas. Deve ser um assunto leve e próximo do contexto da entrevista (trajetória, setor, região de trabalho, como soube da vaga, interesse pela área ou pela empresa), aproveitando algo concreto do currículo quando possível. Não toque em família, estado civil, filhos, religião, saúde, política, idade ou aparência. Varie em relação a: ${iceLocal(i,room.iceIdx-1)}
+Vaga: ${i.vaga}
+Empresa: ${S.settings.empresa}
+Currículo: ${(i.curriculo||'-').slice(0,1500)}
+Responda só em JSON: {"pergunta":"..."}`,true);
+    setSuggestion(r&&r.pergunta?r.pergunta:iceLocal(i,room.iceIdx),'Quebra-gelo pensado a partir do currículo e da vaga.');
+  }catch(e){aiErr(e);setSuggestion(iceLocal(i,room.iceIdx),'Puxe um assunto leve, perto do contexto da entrevista, antes das perguntas.')}
+  room.iceLoading=false; b.innerHTML=icon('refresh')+' Outro quebra-gelo';
+}
 async function suggest(){
   const i=cur(); if(room.sugLoading)return;
   const pend=i.competencias.filter(c=>c.status!=='ok');
