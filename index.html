@@ -243,7 +243,7 @@ body.cand .brand{pointer-events:none}
     </button>
     <nav class="main" aria-label="Principal">
       <button data-go="home">Início</button>
-      <button data-go="nova">Nova entrevista</button>
+      <button data-go="nova">Nova vaga</button>
       <button data-go="comparar">Comparar</button>
       <button data-go="modelos">Modelos</button>
       <button data-go="lgpd">LGPD</button>
@@ -355,11 +355,14 @@ function seed(){
   const ana = {id:'i1',code:'NU-7Q4K',candidato:'Ana Souza',vaga:'Analista de RH Pleno',descricao:'Recrutamento e seleção ponta a ponta para vagas operacionais e administrativas, interface com gestores, indicadores de R&S.',curriculo:'5 anos em R&S. 3 anos em indústria de alimentos. Graduação em Psicologia. Pós em Gestão de Pessoas.',competencias:JSON.parse(JSON.stringify(DEFAULT_COMPS)).map(c=>({...c,status:'pendente',nota:0})),features:{...allOn},cv:null,status:'agendada',consent:null,transcript:[],marks:[],indicios:[],parecer:'',devolutiva:'',pares:[],createdAt:now-3600e3,duracao:0,asked:[]};
   const bruno = {id:'i2',code:'NU-3H8M',candidato:'Bruno Lima',vaga:'Analista de RH Pleno',descricao:ana.descricao,curriculo:'4 anos em R&S em varejo.',competencias:DEFAULT_COMPS.map((c,i)=>{const n=['tem','melhorar','melhorar','tem','tem'][i];return {nome:c.nome,perguntas:c.perguntas,status:'ok',nivel:n,sug:{nivel:n,justificativa:['Comunica-se com clareza e objetividade.','Cita conflitos de forma genérica, sem detalhar a própria ação.','Menciona resultados, mas sem números.','Descreve um método claro de priorização.','Já lidera uma equipe de dois assistentes.'][i],evidencia:''}}}),features:{...allOn},cv:null,status:'concluida',consent:'full',transcript:[{t:5,who:'C',text:'Trabalho com recrutamento há quatro anos, principalmente no varejo.'},{t:40,who:'C',text:'Lidero uma equipe de dois assistentes há um ano.'}],marks:[{t:40,label:'Exemplo forte'}],indicios:[{t:12,emo:'alegria',v:.7,micro:false,inc:false},{t:55,emo:'surpresa',v:.5,micro:true,inc:false}],parecer:'### Resumo\nBruno demonstra boa experiência em varejo e liderança inicial de equipe.\n### Pontos a aprofundar\n- Gestão de conflitos com gestores\n- Indicadores de resultado',devolutiva:'',pares:[{autor:'Gestora da área',texto:'Gostei da experiência com volume alto de vagas.'}],createdAt:now-86400e3,duracao:1900,asked:[]};
   bruno.secoes={s_formacao:'O candidato atua há quatro anos com recrutamento e seleção no varejo, com experiência em processos de alto volume.',s_perfil:'Durante o processo de avaliação, o candidato demonstrou boa comunicação e organização, com método claro de priorização. No entanto, ao abordar conflitos com gestores, apresentou respostas genéricas, sem detalhar a própria atuação.',s_fortes:'Comunicação, organização e experiência com alto volume de vagas.',s_desenv:'Gestão de conflitos e apresentação de resultados com indicadores.',s_conclusao:'O candidato apresenta potencial para a função. Recomenda-se um plano de desenvolvimento voltado à gestão de conflitos e à mensuração de resultados.'}; bruno.parecerFinal='Aprovado com ressalvas';
-  const s = {templates:[defaultTemplate()],interviews:[ana,bruno],consents:[{id:'c1',iid:'i2',code:'NU-3H8M',candidato:'Bruno Lima',choice:'full',at:new Date(now-86400e3).toISOString(),versao:CONSENT_VERSION}],settings:{empresa:'Sua Empresa',contato:'rh@suaempresa.com.br',retencao:90,site:'https://mateusdesleal-ops.github.io/Nuance/'}};
+  ana.vagaId='v1'; bruno.vagaId='v1';
+  const vaga1={id:'v1',nome:'Analista de RH Pleno',descricao:ana.descricao,competencias:DEFAULT_COMPS.map(c=>({nome:c.nome,perguntas:[...c.perguntas]})),etapas:JSON.parse(JSON.stringify(DEFAULT_ETAPAS)),features:{...allOn},templateId:'t_padrao',createdAt:now-2*86400e3};
+  const s = {templates:[defaultTemplate()],vagas:[vaga1],interviews:[ana,bruno],consents:[{id:'c1',iid:'i2',code:'NU-3H8M',candidato:'Bruno Lima',choice:'full',at:new Date(now-86400e3).toISOString(),versao:CONSENT_VERSION}],settings:{empresa:'Sua Empresa',contato:'rh@suaempresa.com.br',retencao:90,site:'https://mateusdesleal-ops.github.io/Nuance/'}};
   return s;
 }
 function load(){try{const r=localStorage.getItem('nuance_v1');if(!r)return null;const s=JSON.parse(r);
   if(!s.templates||!s.templates.length) s.templates=[defaultTemplate()];
+  if(!s.vagas){s.vagas=[];s.interviews.forEach(i=>{let v=s.vagas.find(x=>x.nome===i.vaga);if(!v){v={id:'v'+(s.vagas.length+1)+'_'+Date.now(),nome:i.vaga,descricao:i.descricao||'',competencias:i.competencias.map(c=>({nome:c.nome,perguntas:[...(c.perguntas||[])]})),etapas:i.etapas||JSON.parse(JSON.stringify(DEFAULT_ETAPAS)),features:{...i.features},templateId:i.templateId||'t_padrao',createdAt:i.createdAt||Date.now()};s.vagas.push(v)}i.vagaId=v.id})}
   if(!s.settings.site) s.settings.site='https://mateusdesleal-ops.github.io/Nuance/';
   s.interviews.forEach(i=>{if(i.features&&i.features.rapport===undefined)i.features.rapport=true});
   s.interviews.forEach(i=>i.competencias.forEach(c=>{if(c.nivel===undefined){c.nivel=c.nota>=4?'tem':c.nota===3?'melhorar':c.nota>0?'nao':null;c.sug=c.sug||null}}));return s}catch(e){return null}}
@@ -398,11 +401,25 @@ const logoSVG=(id,cls='')=>`<svg viewBox="20 40 525 440" aria-hidden="true" clas
 /* ---------- IA (Claude via capacidade sample) ---------- */
 try{ if(window.claude&&claude.use){ claude.use('sample').then(f=>{sampleFn=f;}).catch(()=>{}); } }catch(e){}
 async function ai(prompt,json){
-  if(!sampleFn) throw {code:'unavailable'};
-  if(json) return await sampleFn.json(prompt);
-  const r=await sampleFn(prompt); return r.text;
+  if(sampleFn){ if(json) return await sampleFn.json(prompt); const r=await sampleFn(prompt); return r.text; }
+  return await remoteAi(prompt,json);
 }
-function aiErr(e){ if(e&&e.code==='rate_limited') toast('Muitas solicitações. Tente em instantes.'); else if(e&&e.code==='not_granted') toast('IA não autorizada. Usando sugestões padrão.'); else toast('IA indisponível aqui. Usando sugestões padrão.'); }
+let remoteAI=null;
+function aiOn(){return !!sampleFn||remoteAI!==false}
+async function remoteAi(prompt,json){
+  if(remoteAI===false) throw {code:remoteAI_code||'unavailable'};
+  let sb; try{sb=await withTimeout(getSb(),8000)}catch(e){remoteAI=false;remoteAI_code='unavailable';throw {code:'unavailable'}}
+  let res; try{res=await withTimeout(sb.functions.invoke('nuance-ai',{body:{prompt,json:!!json}}),90000)}catch(e){throw {code:'unavailable'}}
+  if(res.error){let code='unavailable';try{const b=await res.error.context.json();code=b.error||code}catch(x){} if(['missing_key','bad_key','origin_not_allowed'].includes(code)){remoteAI=false;remoteAI_code=code} throw {code}}
+  remoteAI=true; const text=(res.data&&res.data.text)||'';
+  if(!json) return text;
+  const m=text.match(/\{[\s\S]*\}/); if(!m) throw {code:'bad'}; return JSON.parse(m[0]);
+}
+let remoteAI_code=null;
+function aiErr(e){
+  if(e&&e.code==='missing_key'){toast('A IA do site ainda não foi ativada: falta a chave da API no Supabase.');return}
+  if(e&&e.code==='bad_key'){toast('A chave da API da Anthropic está inválida. Confira no Supabase.');return}
+  if(e&&e.code==='origin_not_allowed'){toast('A IA funciona pelo endereço oficial do site.');return} if(e&&e.code==='rate_limited') toast('Muitas solicitações. Tente em instantes.'); else if(e&&e.code==='not_granted') toast('IA não autorizada. Usando sugestões padrão.'); else toast('IA indisponível aqui. Usando sugestões padrão.'); }
 
 /* ---------- navegação ---------- */
 document.addEventListener('click',e=>{
@@ -418,10 +435,11 @@ function go(v,id){
   if(isCand()&&!CAND_VIEWS.includes(v)) v='candidato';
   if(room&&v!=='sala') stopRoom();
   if(typeof candRT!=='undefined'&&candRT&&v!=='candsala') candStop();
+  if(v==='nova'){if(id!=='edit')draft=null;id=undefined}
   view=v; if(id) curId=id;
   document.querySelectorAll('nav.main button').forEach(b=>b.classList.toggle('on',b.dataset.go===v));
   window.scrollTo(0,0);
-  ({home:vHome,nova:vNova,convite:vConvite,candidato:vCandidato,aceite:vAceite,candsala:vCandSala,sala:vSala,parecer:vParecer,comparar:vComparar,lgpd:vLgpd,modelos:vModelos}[v]||vHome)();
+  ({home:vHome,nova:vNova,convite:vConvite,candidato:vCandidato,aceite:vAceite,candsala:vCandSala,sala:vSala,parecer:vParecer,comparar:vComparar,lgpd:vLgpd,modelos:vModelos,vaga:vVaga}[v]||vHome)();
 }
 
 /* ---------- splash ---------- */
@@ -432,43 +450,40 @@ function go(v,id){
 })();
 
 /* ---------- HOME ---------- */
+function icon(n){const p={plus:'M12 5v14M5 12h14',key:'M15 7a3 3 0 1 1-3 3M12 10l-7 7v3h3l1-1v-2h2v-2h2l1-1',cam:'M15 10l5-3v10l-5-3M3 7h12v10H3z',play:'M7 5l12 7-12 7z',pause:'M7 5h4v14H7zM13 5h4v14h-4z',spark:'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z',copy:'M9 9h11v11H9zM5 15V4h11',check:'M5 12l5 5 9-10',stop:'M6 6h12v12H6z',next:'M5 5l9 7-9 7zM17 5v14',refresh:'M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7'}[n]||'';return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${p}"/></svg>`}
+
+function vagaOf(i){return S.vagas.find(v=>v.id===i.vagaId)}
+function stPill(i){return i.status==='concluida'?'<span class="pill ok">Concluída</span>':i.status==='em_andamento'?'<span class="pill terra"><span class="dot rec"></span>Em andamento</span>':'<span class="pill gray">Agendada</span>'}
 function vHome(){
-  setTimeout(()=>{const c=$('#hCopy');if(c)c.onclick=()=>copy(candLink());const t=$('#hTest');if(t)t.onclick=()=>{location.hash='entrar'}},0);
-  const ivs=[...S.interviews].sort((a,b)=>b.createdAt-a.createdAt);
-  const stPill=i=>i.status==='concluida'?'<span class="pill ok">Concluída</span>':i.status==='em_andamento'?'<span class="pill terra"><span class="dot rec"></span>Ao vivo</span>':'<span class="pill gray">Agendada</span>';
+  const vs=[...S.vagas].sort((a,b)=>b.createdAt-a.createdAt);
   app.innerHTML=`
-  <section class="hero">
-    <div class="stack" style="gap:16px">
+  <section class="hero" style="margin-bottom:20px">
+    <div class="stack" style="gap:14px">
       <span class="pill terra" style="align-self:flex-start">Protótipo</span>
       <h1>Perceba o que está entre as falas.</h1>
       <p class="muted" style="font-size:17px">Videoentrevistas com transcrição, roteiro por competência, copiloto de perguntas e indícios de emoção baseados em Paul Ekman, sempre com o consentimento do candidato.</p>
-      <div class="grid2" style="margin-top:8px">
-        <button class="card role-card" data-go="nova"><span class="role-ic" style="background:var(--salmon-l);color:var(--terra-d)">${icon('plus')}</span><span><h3>Sou recrutador</h3><span class="small muted">Configurar uma nova entrevista</span></span></button>
-        <div class="card role-card" style="cursor:default"><span class="role-ic" style="background:#F0EBE5">${icon('key')}</span><span style="min-width:0"><h3>Link do candidato</h3><span class="small muted" style="word-break:break-all">${esc(candLink())}</span><span class="row" style="margin-top:8px"><button class="btn sm" id="hCopy">${icon('copy')} Copiar</button><button class="btn sm ghost" id="hTest">Ver como candidato</button></span></span></div>
-      </div>
     </div>
-    <div class="hero-logo">${logoSVG('heroClip')}</div>
+    <div class="hero-logo" style="padding:0">${logoSVG('heroClip')}</div>
   </section>
   <section class="card">
-    <div class="row" style="margin-bottom:6px"><h2>Suas entrevistas</h2><span class="spacer"></span><button class="btn sm primary" data-go="nova">${icon('plus')} Nova</button></div>
-    ${ivs.length?ivs.map(i=>`<div class="list-item"><span class="avatar">${initials(i.candidato)}</span><div style="flex:1;min-width:160px"><b>${esc(i.candidato)}</b><div class="small muted">${esc(i.vaga)} · código ${esc(i.code)}</div></div>${stPill(i)}${i.consent?`<span class="pill ${i.consent==='full'?'ok':'blue'}">${i.consent==='full'?'Análise autorizada':'Só gravação'}</span>`:''}
-      <div class="row">${i.status==='concluida'?`<button class="btn sm" data-go="parecer" data-id="${i.id}">Ver parecer</button>`:`<button class="btn sm" data-go="convite" data-id="${i.id}">Convite</button><button class="btn sm dark" data-go="sala" data-id="${i.id}">Abrir sala</button>`}</div></div>`).join(''):'<p class="muted">Crie sua primeira entrevista.</p>'}
+    <div class="row" style="margin-bottom:6px"><h2>Vagas</h2><span class="spacer"></span><button class="btn sm primary" data-go="nova">${icon('plus')} Nova vaga</button></div>
+    ${vs.length?vs.map(v=>{const c=S.interviews.filter(i=>i.vagaId===v.id);const done=c.filter(i=>i.status==='concluida').length;return `<div class="list-item"><span class="avatar" style="border-radius:12px">${icon('key')}</span><div style="flex:1;min-width:180px"><b>${esc(v.nome)}</b><div class="small muted">${c.length} candidato${c.length===1?'':'s'} · ${done} entrevista${done===1?'':'s'} concluída${done===1?'':'s'}</div></div><button class="btn sm dark" data-go="vaga" data-id="${v.id}">Abrir vaga</button></div>`}).join(''):'<p class="muted">Crie sua primeira vaga e depois cadastre os candidatos.</p>'}
   </section>`;
 }
-function icon(n){const p={plus:'M12 5v14M5 12h14',key:'M15 7a3 3 0 1 1-3 3M12 10l-7 7v3h3l1-1v-2h2v-2h2l1-1',cam:'M15 10l5-3v10l-5-3M3 7h12v10H3z',play:'M7 5l12 7-12 7z',pause:'M7 5h4v14H7zM13 5h4v14h-4z',spark:'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z',copy:'M9 9h11v11H9zM5 15V4h11',check:'M5 12l5 5 9-10',stop:'M6 6h12v12H6z',next:'M5 5l9 7-9 7zM17 5v14',refresh:'M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7'}[n]||'';return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${p}"/></svg>`}
 
-/* ---------- NOVA ENTREVISTA ---------- */
-let draft=null;
+/* ---------- VAGA (criar / editar) ---------- */
+let draft=null, vagaSelId=null;
+function newDraft(v){return v?{...JSON.parse(JSON.stringify(v))}:{id:null,nome:'',descricao:'',competencias:JSON.parse(JSON.stringify(DEFAULT_COMPS)),etapas:JSON.parse(JSON.stringify(DEFAULT_ETAPAS)),features:Object.fromEntries(FEATURES.map(f=>[f[0],true])),templateId:(S.templates.find(x=>x.padrao)||S.templates[0]).id}}
 function vNova(){
-  if(!draft) draft={candidato:'',vaga:'',descricao:'',curriculo:'',competencias:JSON.parse(JSON.stringify(DEFAULT_COMPS)),etapas:JSON.parse(JSON.stringify(DEFAULT_ETAPAS)),features:Object.fromEntries(FEATURES.map(f=>[f[0],true])),cv:null};
+  if(!draft) draft=newDraft(null);
+  const editing=!!draft.id;
   const grp=(k,t)=>`<div class="card"><h3 style="margin-bottom:6px">${t}</h3>${FEATURES.filter(f=>f[3]===k).map(f=>`<div class="tg"><div><b style="font-size:14px">${f[1]}</b><div class="xs muted">${f[2]}</div></div><label class="switch"><input type="checkbox" data-ft="${f[0]}" ${draft.features[f[0]]?'checked':''} aria-label="${f[1]}"><span></span></label></div>`).join('')}</div>`;
   app.innerHTML=`
-  <div class="row" style="margin-bottom:16px"><h1>Nova entrevista</h1></div>
+  <div class="row" style="margin-bottom:16px"><h1 style="flex:1">${editing?'Editar vaga':'Nova vaga'}</h1>${editing?`<button class="btn sm ghost" id="bCancel">Cancelar</button>`:''}</div>
   <div class="grid2" style="align-items:start">
     <div class="stack">
       <div class="card stack">
-        <div><label class="f" for="fCand">Candidato</label><input id="fCand" type="text" placeholder="Ana Souza" value="${esc(draft.candidato)}"></div>
-        <div><label class="f" for="fVaga">Vaga</label><input id="fVaga" type="text" placeholder="Analista de RH Pleno" value="${esc(draft.vaga)}"></div>
+        <div><label class="f" for="fVaga">Nome da vaga</label><input id="fVaga" type="text" placeholder="Analista de RH Pleno" value="${esc(draft.nome)}"></div>
         <div><label class="f" for="fDesc">Descrição da vaga</label><textarea id="fDesc" placeholder="Cole aqui a descrição da vaga">${esc(draft.descricao)}</textarea></div>
         <div class="row"><button class="btn sm" id="bRoteiro">${icon('spark')} Gerar roteiro com IA</button><span class="xs muted">Monta competências e perguntas a partir da vaga</span></div>
       </div>
@@ -483,49 +498,40 @@ function vNova(){
         <div id="comps"></div>
       </div>
       <div class="card stack"><label class="f" for="et_livre" style="font-size:16px;color:var(--ink);font-weight:700">5. Livre</label><textarea id="et_livre" data-et="livre" style="min-height:80px;font-size:14px">${esc((draft.etapas.livre||[]).join('\n'))}</textarea></div>
-      <div class="card stack">
-        <div><label class="f" for="fCv">Currículo</label><textarea id="fCv" placeholder="Cole o texto do currículo ou envie um arquivo .txt">${esc(draft.curriculo)}</textarea></div>
-        <div class="row"><label class="btn sm ghost" style="cursor:pointer">Enviar .txt<input type="file" accept=".txt,text/plain" id="fCvFile" class="sr"></label><button class="btn sm" id="bCv">${icon('spark')} Analisar currículo</button></div>
-        <div id="cvOut"></div>
-      </div>
     </div>
     <div class="stack">
-      <div class="card"><label class="f" for="fTpl">Modelo de parecer</label><select id="fTpl">${S.templates.map(t=>`<option value="${t.id}" ${(draft.templateId||(S.templates.find(x=>x.padrao)||{}).id)===t.id?'selected':''}>${esc(t.nome)}${t.padrao&&!/padrão/i.test(t.nome)?' (padrão)':''}</option>`).join('')}</select><p class="xs muted" style="margin-top:6px">A IA preenche os tópicos desse modelo durante a entrevista. <button class="btn sm ghost" data-go="modelos" style="margin-left:4px">Gerenciar modelos</button></p></div>
-      <p class="small muted">Escolha o que usar nesta entrevista. O que estiver desligado não aparece na sala.</p>
+      <div class="card"><label class="f" for="fTpl">Modelo de parecer</label><select id="fTpl">${S.templates.map(t=>`<option value="${t.id}" ${draft.templateId===t.id?'selected':''}>${esc(t.nome)}${t.padrao&&!/padrão/i.test(t.nome)?' (padrão)':''}</option>`).join('')}</select><p class="xs muted" style="margin-top:6px">A IA preenche os tópicos desse modelo durante a entrevista. <button class="btn sm ghost" data-go="modelos" style="margin-left:4px">Gerenciar modelos</button></p></div>
+      <p class="small muted">Escolha o que usar nas entrevistas desta vaga. O que estiver desligado não aparece na sala.</p>
       ${grp('antes','Antes')}${grp('durante','Durante')}${grp('depois','Depois')}
-      <button class="btn primary" id="bCriar" style="width:100%">Criar entrevista e gerar código</button>
+      <p id="vErr" class="small" style="color:#A3301E;min-height:18px"></p>
+      <button class="btn primary" id="bSalvarVaga" style="width:100%">${editing?'Salvar vaga':'Criar vaga'}</button>
+      ${editing?'<p class="xs muted">As mudanças valem para os próximos candidatos cadastrados. Quem já foi cadastrado mantém o roteiro que recebeu.</p>':''}
     </div>
   </div>`;
-  const sync=()=>{draft.candidato=$('#fCand').value;draft.vaga=$('#fVaga').value;draft.descricao=$('#fDesc').value;draft.curriculo=$('#fCv').value};
-  ['#fCand','#fVaga','#fDesc','#fCv'].forEach(s=>$(s).addEventListener('input',sync));
+  const sync=()=>{draft.nome=$('#fVaga').value;draft.descricao=$('#fDesc').value;$('#vErr').textContent=''};
+  ['#fVaga','#fDesc'].forEach(s=>$(s).addEventListener('input',sync));
   $('#fTpl').addEventListener('change',e=>draft.templateId=e.target.value);
   app.querySelectorAll('[data-et]').forEach(t=>t.addEventListener('input',()=>{draft.etapas[t.dataset.et]=t.value.split('\n').map(x=>x.trim()).filter(Boolean)}));
   app.querySelectorAll('[data-ft]').forEach(c=>c.addEventListener('change',()=>{draft.features[c.dataset.ft]=c.checked}));
-  renderComps(); renderCv();
-  $('#fCvFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{$('#fCv').value=t;sync();toast('Currículo carregado')})});
+  renderComps();
+  const bc=$('#bCancel'); if(bc) bc.onclick=()=>{const id=draft.id;draft=null;go('vaga',id)};
   $('#bAddComp').onclick=()=>{draft.competencias.push({nome:'Nova competência',perguntas:['']});renderComps()};
   $('#bRoteiro').onclick=async e=>{
-    sync(); const b=e.currentTarget; if(!draft.vaga&&!draft.descricao){toast('Preencha a vaga ou a descrição');return}
+    sync(); const b=e.currentTarget; if(!draft.nome&&!draft.descricao){$('#vErr').textContent='Preencha o nome ou a descrição da vaga.';return}
     b.innerHTML='<span class="spin"></span> Gerando…';b.disabled=true;
     try{
-      const r=await ai(`Você é especialista em recrutamento por competências no Brasil. Para a vaga "${draft.vaga}" com a descrição abaixo, defina de 4 a 6 competências essenciais e, para cada uma, 3 perguntas comportamentais (método STAR), em português do Brasil, curtas e abertas.\nDescrição: ${draft.descricao}\nResponda só em JSON: {"competencias":[{"nome":"...","perguntas":["...","...","..."]}]}`,true);
+      const r=await ai(`Você é especialista em recrutamento por competências no Brasil. Para a vaga "${draft.nome}" com a descrição abaixo, defina de 4 a 6 competências essenciais e, para cada uma, 3 perguntas comportamentais (método STAR), em português do Brasil, curtas e abertas. Não repita perguntas de trajetória ou formação, que já ficam em outros blocos.\nDescrição: ${draft.descricao}\nResponda só em JSON: {"competencias":[{"nome":"...","perguntas":["...","...","..."]}]}`,true);
       if(r&&Array.isArray(r.competencias)){draft.competencias=r.competencias.map(c=>({nome:String(c.nome),perguntas:(c.perguntas||[]).map(String)}));renderComps();toast('Roteiro gerado')}
     }catch(err){aiErr(err)}
     b.innerHTML=icon('spark')+' Gerar roteiro com IA';b.disabled=false;
   };
-  $('#bCv').onclick=async e=>{
-    sync(); const b=e.currentTarget; if(!draft.curriculo.trim()){toast('Cole o currículo primeiro');return}
-    b.innerHTML='<span class="spin"></span> Analisando…';b.disabled=true;
-    try{
-      const r=await ai(`Analise o currículo abaixo para a vaga "${draft.vaga}" (${draft.descricao}). Em português do Brasil, aponte lacunas e pontos a confirmar na entrevista. Não julgue características pessoais (idade, gênero, origem etc.).\nCurrículo: ${draft.curriculo}\nResponda só em JSON: {"resumo":"1 frase","lacunas":["..."],"confirmar":["..."]}`,true);
-      draft.cv=r; renderCv();
-    }catch(err){aiErr(err); draft.cv={resumo:'Análise automática indisponível neste ambiente.',lacunas:['Verifique períodos sem experiência declarada'],confirmar:['Confirme resultados numéricos citados','Confirme escopo das responsabilidades']}; renderCv();}
-    b.innerHTML=icon('spark')+' Analisar currículo';b.disabled=false;
-  };
-  $('#bCriar').onclick=()=>{
-    sync(); if(!draft.candidato.trim()||!draft.vaga.trim()){toast('Preencha candidato e vaga');return}
-    const iv={id:'i'+Date.now(),code:genCode(),candidato:draft.candidato.trim(),vaga:draft.vaga.trim(),descricao:draft.descricao,curriculo:draft.curriculo,competencias:draft.competencias.filter(c=>c.nome.trim()).map(c=>({nome:c.nome,perguntas:c.perguntas.filter(q=>q.trim()),status:'pendente',nivel:null,sug:null})),features:{...draft.features},etapas:draft.etapas||JSON.parse(JSON.stringify(DEFAULT_ETAPAS)),cv:draft.cv,templateId:draft.templateId||(S.templates.find(x=>x.padrao)||S.templates[0]).id,secoes:{},parecerFinal:'',status:'agendada',consent:null,transcript:[],marks:[],indicios:[],parecer:'',devolutiva:'',pares:[],createdAt:Date.now(),duracao:0,asked:[]};
-    S.interviews.push(iv); save(); draft=null; go('convite',iv.id);
+  $('#bSalvarVaga').onclick=()=>{
+    sync(); if(!draft.nome.trim()){$('#vErr').textContent='Dê um nome para a vaga.';$('#fVaga').focus();return}
+    const data={nome:draft.nome.trim(),descricao:draft.descricao,competencias:draft.competencias.filter(c=>c.nome.trim()).map(c=>({nome:c.nome.trim(),perguntas:c.perguntas.filter(q=>q.trim())})),etapas:draft.etapas,features:{...draft.features},templateId:draft.templateId};
+    let id=draft.id;
+    if(id){const v=S.vagas.find(x=>x.id===id);Object.assign(v,data);S.interviews.filter(i=>i.vagaId===id).forEach(i=>i.vaga=v.nome)}
+    else{id='v'+Date.now();S.vagas.push({id,createdAt:Date.now(),...data})}
+    save(); draft=null; toast('Vaga salva'); go('vaga',id);
   };
 }
 function renderComps(){
@@ -539,16 +545,61 @@ function renderComps(){
   box.querySelectorAll('[data-crm]').forEach(b=>b.onclick=()=>{draft.competencias.splice(+b.dataset.crm,1);renderComps()});
   box.querySelectorAll('[data-cqa]').forEach(b=>b.onclick=()=>{draft.competencias[+b.dataset.cqa].perguntas.push('');renderComps()});
 }
-function renderCv(){
-  const o=$('#cvOut'); if(!o)return; const c=draft.cv; if(!c){o.innerHTML='';return}
-  o.innerHTML=`<div class="msgbox" style="white-space:normal"><b>${esc(c.resumo||'')}</b>${(c.lacunas||[]).length?`<div class="small" style="margin-top:8px"><b>Lacunas</b><ul style="margin:4px 0;padding-left:18px">${c.lacunas.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}${(c.confirmar||[]).length?`<div class="small"><b>Confirmar na entrevista</b><ul style="margin:4px 0;padding-left:18px">${c.confirmar.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}</div>`;
+function cvHTML(c){if(!c)return '';return `<div class="msgbox" style="white-space:normal"><b>${esc(c.resumo||'')}</b>${(c.lacunas||[]).length?`<div class="small" style="margin-top:8px"><b>Lacunas</b><ul style="margin:4px 0;padding-left:18px">${c.lacunas.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}${(c.confirmar||[]).length?`<div class="small"><b>Confirmar na entrevista</b><ul style="margin:4px 0;padding-left:18px">${c.confirmar.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}</div>`}
+
+/* ---------- VAGA (detalhe + candidatos) ---------- */
+let candDraft=null;
+function vVaga(){
+  const v=S.vagas.find(x=>x.id===curId)||S.vagas.find(x=>x.id===vagaSelId); if(!v)return go('home'); vagaSelId=v.id;
+  if(!candDraft||candDraft.vagaId!==v.id) candDraft={vagaId:v.id,nome:'',curriculo:'',cv:null,open:false};
+  const cs=S.interviews.filter(i=>i.vagaId===v.id).sort((a,b)=>b.createdAt-a.createdAt);
+  app.innerHTML=`
+  <div class="row" style="margin-bottom:6px"><button class="btn sm ghost" data-go="home">← Vagas</button></div>
+  <div class="row" style="margin-bottom:16px"><div style="flex:1;min-width:220px"><h1>${esc(v.nome)}</h1><div class="muted small">${v.competencias.length} competências · ${cs.length} candidato${cs.length===1?'':'s'}</div></div>
+    <button class="btn sm ghost" id="bEditVaga">Editar vaga</button>${v.features.comparativo!==false?`<button class="btn sm ghost" id="bCmpVaga">Comparar candidatos</button>`:''}<button class="btn sm primary" id="bAddCand">${icon('plus')} Adicionar candidato</button></div>
+  <div class="card stack" id="candForm" style="display:${candDraft.open?'flex':'none'};margin-bottom:16px">
+    <h3>Novo candidato</h3>
+    <div><label class="f" for="cNome">Nome completo</label><input id="cNome" type="text" placeholder="Ana Souza" value="${esc(candDraft.nome)}"></div>
+    ${v.features.curriculo?`<div><label class="f" for="cCv">Currículo (opcional)</label><textarea id="cCv" placeholder="Cole o texto do currículo ou envie um arquivo">${esc(candDraft.curriculo)}</textarea></div>
+    <div class="row"><label class="btn sm ghost" style="cursor:pointer">Enviar arquivo (.txt ou .docx)<input type="file" accept=".txt,.docx,text/plain" id="cCvFile" class="sr"></label><button class="btn sm" id="bCv">${icon('spark')} Analisar currículo</button></div>
+    <div id="cvOut">${cvHTML(candDraft.cv)}</div>`:''}
+    <p id="cnErr" class="small" style="color:#A3301E;min-height:18px"></p>
+    <div class="row"><span class="spacer"></span><button class="btn ghost" id="bCandCancel">Cancelar</button><button class="btn primary" id="bCandSave">Cadastrar e gerar código</button></div>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:6px">Candidatos</h3>
+    ${cs.length?cs.map(i=>`<div class="list-item"><span class="avatar">${initials(i.candidato)}</span><div style="flex:1;min-width:160px"><b>${esc(i.candidato)}</b><div class="small muted">código ${esc(i.code)}${i.parecerFinal?' · '+esc(i.parecerFinal):''}</div></div>${stPill(i)}${i.consent?`<span class="pill ${i.consent==='full'?'ok':'blue'}">${i.consent==='full'?'Análise autorizada':'Só gravação'}</span>`:''}
+      <div class="row">${i.status==='concluida'?`<button class="btn sm" data-go="parecer" data-id="${i.id}">Ver parecer</button>`:`<button class="btn sm" data-go="convite" data-id="${i.id}">Convite</button><button class="btn sm dark" data-go="sala" data-id="${i.id}">Abrir sala</button>`}</div></div>`).join(''):'<p class="muted small">Nenhum candidato ainda. Clique em "Adicionar candidato".</p>'}
+  </div>
+  <div class="card row" style="margin-top:16px"><div style="flex:1;min-width:200px"><b class="small">Link do candidato</b><div class="xs muted" style="word-break:break-all">${esc(candLink())}</div></div><button class="btn sm" id="hCopy">${icon('copy')} Copiar link</button><button class="btn sm ghost" id="hTest">Ver como candidato</button></div>`;
+  $('#hCopy').onclick=()=>copy(candLink()); $('#hTest').onclick=()=>{location.hash='entrar'};
+  $('#bEditVaga').onclick=()=>{draft=newDraft(v);go('nova','edit')};
+  const bcv=$('#bCmpVaga'); if(bcv) bcv.onclick=()=>{vComparar.sel=v.id;go('comparar')};
+  const form=$('#candForm');
+  $('#bAddCand').onclick=()=>{candDraft.open=true;form.style.display='flex';$('#cNome').focus()};
+  $('#bCandCancel').onclick=()=>{candDraft={vagaId:v.id,nome:'',curriculo:'',cv:null,open:false};vVaga()};
+  $('#cNome').oninput=e=>{candDraft.nome=e.target.value;$('#cnErr').textContent=''};
+  const cvIn=$('#cCv'); if(cvIn) cvIn.oninput=e=>candDraft.curriculo=e.target.value;
+  const cvf=$('#cCvFile'); if(cvf) cvf.onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const t=/\.docx$/i.test(f.name)?await docxText(f):await f.text();candDraft.curriculo=t;cvIn.value=t;toast('Currículo carregado')}catch(err){$('#cnErr').textContent='Não consegui ler esse arquivo. Cole o texto no campo.'}};
+  const bcv2=$('#bCv'); if(bcv2) bcv2.onclick=async e=>{
+    const b=e.currentTarget; if(!candDraft.curriculo.trim()){$('#cnErr').textContent='Cole ou envie o currículo primeiro.';return}
+    b.innerHTML='<span class="spin"></span> Analisando…';b.disabled=true;
+    try{candDraft.cv=await ai(`Analise o currículo abaixo para a vaga "${v.nome}" (${v.descricao}). Em português do Brasil, aponte lacunas e pontos a confirmar na entrevista. Não julgue características pessoais (idade, gênero, origem, estado civil etc.).\nCurrículo: ${candDraft.curriculo.slice(0,12000)}\nResponda só em JSON: {"resumo":"1 frase","lacunas":["..."],"confirmar":["..."]}`,true)}
+    catch(err){aiErr(err);candDraft.cv={resumo:'Análise automática indisponível neste ambiente.',lacunas:['Verifique períodos sem experiência declarada'],confirmar:['Confirme resultados citados','Confirme o escopo das responsabilidades']}}
+    $('#cvOut').innerHTML=cvHTML(candDraft.cv); b.innerHTML=icon('spark')+' Analisar currículo';b.disabled=false;
+  };
+  $('#bCandSave').onclick=()=>{
+    const nome=candDraft.nome.trim(); if(!nome){$('#cnErr').textContent='Digite o nome do candidato.';$('#cNome').focus();return}
+    const iv={id:'i'+Date.now(),vagaId:v.id,code:genCode(),candidato:nome,vaga:v.nome,descricao:v.descricao,curriculo:candDraft.curriculo,competencias:v.competencias.map(c=>({nome:c.nome,perguntas:[...c.perguntas],status:'pendente',nivel:null,sug:null})),features:{...v.features},etapas:JSON.parse(JSON.stringify(v.etapas||DEFAULT_ETAPAS)),cv:candDraft.cv,templateId:v.templateId,secoes:{},parecerFinal:'',status:'agendada',consent:null,transcript:[],marks:[],indicios:[],parecer:'',devolutiva:'',pares:[],createdAt:Date.now(),duracao:0,asked:[]};
+    S.interviews.push(iv); save(); candDraft=null; go('convite',iv.id);
+  };
 }
 
 /* ---------- CONVITE ---------- */
 function vConvite(){
   const i=cur(); if(!i)return go('home');
   const msg=`Olá, ${i.candidato.split(' ')[0]}! Tudo bem?\n\nSua entrevista para a vaga de ${i.vaga} na ${S.settings.empresa} acontecerá pelo Nuance.\n\nNo horário combinado, acesse o link abaixo e informe o código da sua sala:\n\n${candLink()}\n\nCódigo: ${i.code}\n\nAntes de entrar, você verá como a entrevista será registrada e poderá escolher o que autoriza.\n\nAté breve!`;
-  app.innerHTML=`<div class="row" style="margin-bottom:16px"><h1>Entrevista criada</h1></div>
+  app.innerHTML=`<div class="row" style="margin-bottom:6px"><button class="btn sm ghost" data-go="vaga" data-id="${i.vagaId||''}">← ${esc(i.vaga)}</button></div><div class="row" style="margin-bottom:16px"><h1>Candidato cadastrado</h1></div>
   <div class="grid2" style="align-items:start">
     <div class="card stack" style="align-items:flex-start">
       <span class="small muted">Código da sala de ${esc(i.candidato)}</span>
@@ -878,7 +929,7 @@ function iceLocal(i,k){const emp=S.settings.empresa;const L=[
 function exitRapport(){const r=$('#rapBox');if(!r)return;r.remove();const t=$('#askTitle');if(t)t.textContent='Pergunte agora';const b=$('#bIce');if(b)b.remove();const s=$('#bSug');if(s)s.innerHTML=icon('spark')+' Nova sugestão'}
 async function nextIce(){
   const i=cur(), b=$('#bIce'); if(!b||room.iceLoading)return; room.iceIdx=(room.iceIdx||0)+1;
-  if(!sampleFn){setSuggestion(iceLocal(i,room.iceIdx),'Puxe um assunto leve, perto do contexto da entrevista, antes das perguntas.');return}
+  if(!aiOn()){setSuggestion(iceLocal(i,room.iceIdx),'Puxe um assunto leve, perto do contexto da entrevista, antes das perguntas.');return}
   room.iceLoading=true; b.innerHTML='<span class="spin"></span>';
   try{const r=await ai(`Sugira UM quebra-gelo curto, natural e cordial, em português do Brasil, para o recrutador puxar no começo de uma entrevista, antes das perguntas. Deve ser um assunto leve e próximo do contexto da entrevista (trajetória, setor, região de trabalho, como soube da vaga, interesse pela área ou pela empresa), aproveitando algo concreto do currículo quando possível. Não toque em família, estado civil, filhos, religião, saúde, política, idade ou aparência. Varie em relação a: ${iceLocal(i,room.iceIdx-1)}
 Vaga: ${i.vaga}
@@ -893,7 +944,7 @@ async function suggest(){
   const i=cur(); if(room.sugLoading)return;
   const pend=i.competencias.filter(c=>c.status!=='ok');
   const fallback=()=>{const bk=blocks(i)[room.block];if(bk&&!bk.grupo){const q=bk.perguntas.find(x=>!i.asked.includes(x));if(q){setSuggestion(q,'Bloco atual: '+bk.nome);return}}const c=pend[0]||i.competencias[0];const q=(c?.perguntas||[]).find(x=>!i.asked.includes(x))||'Pode me dar um exemplo concreto, com situação, ação e resultado?';setSuggestion(q,c?'Competência ainda não coberta: '+c.nome:'')};
-  if(!sampleFn){fallback();return}
+  if(!aiOn()){fallback();return}
   room.sugLoading=true; const btn=$('#bSug'); btn.innerHTML='<span class="spin"></span> Pensando…';
   try{
     const last=i.transcript.slice(-8).map(l=>(l.who==='C'?'Candidato':'Recrutador')+': '+l.text).join('\n');
@@ -1112,7 +1163,7 @@ function vParecer(){
   const evs=i.indicios.map(x=>`<span class="ev" title="${EMO[x.emo].nome} ${fmt(x.t)}" style="left:${(x.t/dur*100).toFixed(1)}%;background:${EMO[x.emo].cor};${x.inc?'outline:2px solid var(--warn);outline-offset:1px':''}"></span>`).join('');
   const mks=i.marks.map(m=>`<span class="ev" title="${esc(m.label)} ${fmt(m.t)}" style="left:${(m.t/dur*100).toFixed(1)}%;background:var(--ink);width:4px;top:4px;height:38px"></span>`).join('');
   app.innerHTML=`
-  <div class="row" style="margin-bottom:16px"><div style="flex:1;min-width:200px"><h1>${esc(i.candidato)}</h1><div class="muted">${esc(i.vaga)} · ${fmt(i.duracao)} de entrevista · ${i.consent==='full'?'análise autorizada':i.consent==='basic'?'análise não autorizada':'sem aceite registrado'}</div></div><button class="btn sm ghost" data-go="home">Voltar</button></div>
+  <div class="row" style="margin-bottom:16px"><div style="flex:1;min-width:200px"><h1>${esc(i.candidato)}</h1><div class="muted">${esc(i.vaga)} · ${fmt(i.duracao)} de entrevista · ${i.consent==='full'?'análise autorizada':i.consent==='basic'?'análise não autorizada':'sem aceite registrado'}</div></div><button class="btn sm ghost" data-go="vaga" data-id="${i.vagaId||''}">← ${esc(i.vaga)}</button></div>
   <div class="grid2" style="align-items:start">
     <div class="stack">
       ${F.parecer?(()=>{const t=tplOf(i);i.secoes=i.secoes||{};return `<div class="card"><div class="row"><h2 style="flex:1">Parecer</h2><button class="btn sm" id="bPar">${icon('spark')} ${t.secoes.some(s=>s.ativa&&i.secoes[s.id])?'Revisar tudo com IA':'Preencher com IA'}</button><button class="btn sm ghost" id="cPar">${icon('copy')} Copiar</button></div>
@@ -1194,14 +1245,14 @@ function fallbackParecer(i){
 
 /* ---------- COMPARAR ---------- */
 function vComparar(){
-  const vagas=[...new Set(S.interviews.map(i=>i.vaga))];
-  let sel=vComparar.sel&&vagas.includes(vComparar.sel)?vComparar.sel:vagas[0];
-  const list=S.interviews.filter(i=>i.vaga===sel&&i.status==='concluida'&&i.features.comparativo!==false);
+  const vagas=S.vagas;
+  let sel=vComparar.sel&&vagas.some(v=>v.id===vComparar.sel)?vComparar.sel:(vagas[0]||{}).id;
+  const list=S.interviews.filter(i=>i.vagaId===sel&&i.status==='concluida'&&i.features.comparativo!==false);
   const comps=[...new Set(list.flatMap(i=>i.competencias.map(c=>c.nome)))];
   const avg=i=>{const t=i.competencias.filter(c=>c.nivel==='tem').length,m=i.competencias.filter(c=>c.nivel==='melhorar').length;return `<span class="lv tem">${t} tem</span> <span class="lv melhorar">${m} a melhorar</span>`};
   app.innerHTML=`<div class="row" style="margin-bottom:16px"><h1>Comparar candidatos</h1></div>
   <div class="card stack">
-    <div style="max-width:360px"><label class="f" for="cmpV">Vaga</label><select id="cmpV">${vagas.map(v=>`<option ${v===sel?'selected':''}>${esc(v)}</option>`).join('')}</select></div>
+    <div style="max-width:360px"><label class="f" for="cmpV">Vaga</label><select id="cmpV">${vagas.map(v=>`<option value="${v.id}" ${v.id===sel?'selected':''}>${esc(v.nome)}</option>`).join('')}</select></div>
     ${list.length?`<div class="tablewrap"><table class="cmp"><thead><tr><th>Competência</th>${list.map(i=>`<th><button class="btn sm ghost" data-go="parecer" data-id="${i.id}">${esc(i.candidato)}</button></th>`).join('')}</tr></thead><tbody>
       ${comps.map(c=>`<tr><td><b>${esc(c)}</b></td>${list.map(i=>{const x=i.competencias.find(k=>k.nome===c);return `<td>${x&&x.nivel?`<span class="lv ${x.nivel}">${NIVEL_CURTO[x.nivel]}</span>`:x&&x.sug?`<span class="lv sem">Sugestão: ${NIVEL_CURTO[x.sug.nivel]}</span>`:'<span class="muted small">sem avaliação</span>'}</td>`}).join('')}</tr>`).join('')}
       <tr><td><b>Resumo</b></td>${list.map(i=>`<td>${avg(i)}</td>`).join('')}</tr>

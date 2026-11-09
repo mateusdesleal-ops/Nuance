@@ -16,6 +16,15 @@ python3 -m http.server 8080
 - Demonstração: abra a sala de **Ana Souza** e clique em **Iniciar demonstração**.
 - Candidato: o link do candidato termina em `#entrar` (ex.: `https://mateusdesleal-ops.github.io/Nuance/#entrar`) e mostra só a tela do código, o termo e a sala. Teste com o código **NU-7Q4K**.
 
+## Fluxo
+
+1. **Vagas:** crie a vaga com roteiro (Pessoal → Formação → Experiências → Competências → Livre), funções ligadas e modelo de parecer.
+2. **Candidatos:** dentro da vaga, cadastre cada candidato (com currículo opcional). Cada um recebe um código e herda a configuração da vaga.
+
+## IA no site
+
+As funções de IA chamam a Edge Function `nuance-ai` do Supabase, que usa a API da Anthropic. A chave fica no secret `ANTHROPIC_API_KEY` do projeto (nunca no site). A função só aceita pedidos do domínio do site, limita 30 pedidos/min por IP e 1.500/dia, e o modelo pode ser trocado pelo secret `NUANCE_MODEL`.
+
 ## Funcionalidades
 
 - **Antes:** roteiro por vaga, leitura do currículo, convite com código.
