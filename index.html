@@ -418,7 +418,7 @@ async function remoteAi(prompt,json){
 let remoteAI_code=null;
 function aiErr(e){
   if(e&&e.code==='missing_key'){toast('A IA do site ainda não foi ativada: falta a chave da API no Supabase.');return}
-  if(e&&e.code==='bad_key'){toast('A chave da API da Anthropic está inválida. Confira no Supabase.');return}
+  if(e&&e.code==='bad_key'){toast('A chave da API de IA está inválida. Confira os secrets no Supabase.');return}
   if(e&&e.code==='origin_not_allowed'){toast('A IA funciona pelo endereço oficial do site.');return} if(e&&e.code==='rate_limited') toast('Muitas solicitações. Tente em instantes.'); else if(e&&e.code==='not_granted') toast('IA não autorizada. Usando sugestões padrão.'); else toast('IA indisponível aqui. Usando sugestões padrão.'); }
 
 /* ---------- navegação ---------- */

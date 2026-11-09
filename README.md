@@ -23,7 +23,7 @@ python3 -m http.server 8080
 
 ## IA no site
 
-As funções de IA chamam a Edge Function `nuance-ai` do Supabase, que usa a API da Anthropic. A chave fica no secret `ANTHROPIC_API_KEY` do projeto (nunca no site). A função só aceita pedidos do domínio do site, limita 30 pedidos/min por IP e 1.500/dia, e o modelo pode ser trocado pelo secret `NUANCE_MODEL`.
+As funções de IA chamam a Edge Function `nuance-ai` do Supabase. Provedores: **Groq** (gratuito, com limites; secret `GROQ_API_KEY`) ou **Anthropic** (pago; secret `ANTHROPIC_API_KEY`). Com as duas chaves, usa a Anthropic, a menos que `NUANCE_PROVIDER=groq`. As chaves ficam só nos secrets do Supabase, nunca no site. A função só aceita pedidos do domínio do site, limita 30 pedidos/min por IP e 1.500/dia, e o modelo pode ser trocado pelo secret `NUANCE_MODEL`.
 
 ## Funcionalidades
 
