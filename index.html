@@ -279,6 +279,7 @@ const FEATURES = [
   ['curriculo','Leitura do currículo','Aponta lacunas e pontos a confirmar','antes'],
   ['convite','Convite com código','Mensagem pronta para e-mail ou WhatsApp','antes'],
   ['gravacao','Transcrição','Transcrição automática da conversa (o vídeo não é gravado)','durante'],
+  ['video','Gravação em vídeo','Grava a entrevista e salva o arquivo no seu computador','durante'],
   ['ekman','Painel Ekman','Indícios das 7 emoções básicas','durante'],
   ['incongruencia','Alerta de incongruência','Fala positiva + expressão negativa','durante'],
   ['rapport','Abertura e rapport','Agradecimento e quebra-gelo no início','durante'],
@@ -308,7 +309,7 @@ const ETAPA_INFO=[['pessoal','Pessoal',5],['formacao','Formação',5],['experien
 function blocks(i){const e=i.etapas||DEFAULT_ETAPAS;const n=Math.max(1,i.competencias.length);
   return [...ETAPA_INFO.map(([k,nome,min])=>({nome,perguntas:e[k]||[],min})),...i.competencias.map(c=>({nome:c.nome,grupo:'Competências',perguntas:c.perguntas,min:Math.max(2,Math.round(20/n))})),{nome:'Livre',perguntas:e.livre||[],min:5}]}
 const MARKS = ['Hesitou','Se animou','Resposta vaga','Exemplo forte','Mudou de postura','Evitou o tema'];
-const CONSENT_VERSION = '1.1';
+const CONSENT_VERSION = '1.2';
 const PARECER_FINAL = ['Aprovado','Aprovado com ressalvas','Não recomendado','Em análise'];
 const SENSITIVE_RULE = 'Nunca escreva sobre saúde física ou mental (nem sugira diagnósticos), religião, orientação sexual, origem, opinião política ou gravidez, mesmo que tenham surgido na conversa. Não use os indícios de emoção da plataforma como conclusão sobre a pessoa.';
 function defaultTemplate(){return {id:'t_padrao',nome:'Parecer de avaliação (padrão)',padrao:true,
@@ -647,7 +648,7 @@ function vCandidato(){
     if(!v){$('#cErr').textContent='Digite o código.';return}
     const btn=$('#cGo'); btn.innerHTML='<span class="spin"></span> Procurando sala…'; btn.disabled=true;
     rpc('nuance_get_room',{p_code:v}).then(r=>{const row=r&&r[0]; if(!row) throw {nf:true};
-      candRoom={id:'remote_'+row.code,remote:true,code:row.code,candidato:row.candidato_nome,vaga:row.vaga,empresa:row.empresa,contato:row.contato,retencao:row.retencao,features:{ekman:row.analise,gravacao:row.gravacao},consent:null};
+      candRoom={id:'remote_'+row.code,remote:true,code:row.code,candidato:row.candidato_nome,vaga:row.vaga,empresa:row.empresa,contato:row.contato,retencao:row.retencao,features:{ekman:row.analise,gravacao:row.gravacao,video:!!row.video},consent:null};
       curId=candRoom.id; go('aceite');
     }).catch(err=>{
       const i=S.interviews.find(x=>x.code===v&&x.status!=='concluida');
@@ -660,22 +661,25 @@ function vCandidato(){
 }
 function vAceite(){
   const i=cur(); if(!i)return go('candidato'); const st=i.remote?{empresa:i.empresa,contato:i.contato,retencao:i.retencao}:S.settings;
-  const analise=i.features.ekman;
+  const analise=i.features.ekman, video=i.features.video;
+  const opt=(id,title,txt)=>`<label class="hl" style="display:flex;gap:12px;align-items:flex-start;cursor:pointer;margin-top:10px"><input type="checkbox" id="${id}" style="width:22px;height:22px;margin-top:2px;flex-shrink:0;accent-color:var(--terra)"><span><b>${title}</b><br><span class="small">${txt}</span></span></label>`;
   app.innerHTML=`<div class="card consent">
     <h2>Antes de começar sua entrevista</h2>
     <p style="margin-top:10px">Olá, ${esc(i.candidato.split(' ')[0])}! Esta entrevista faz parte do processo seletivo conduzido por <b>${esc(st.empresa)}</b> para a vaga de <b>${esc(i.vaga)}</b>. Para tornar o processo mais organizado e justo, o recrutador usa uma plataforma de apoio.</p>
-    ${i.features.gravacao?`<h3>Transcrição</h3><p>A conversa será transcrita automaticamente, para que o recrutador possa revisar suas respostas com atenção depois. O vídeo não é gravado. A transcrição é feita por um serviço de inteligência artificial que não usa seus dados para treinar modelos.</p>`:''}
-    ${analise?`<div class="hl"><h3 style="margin-top:0">Análise de expressões</h3><p>Com sua autorização, a plataforma interpreta expressões faciais e linguagem corporal com base nos estudos de Paul Ekman sobre emoções. Essa análise gera apenas <i>indícios</i> para ajudar o recrutador a entender melhor a conversa e a fazer boas perguntas. <b>Ela não aprova nem reprova ninguém</b>: a decisão é sempre do recrutador, com base no conjunto do processo. Se você não autorizar, a entrevista acontece normalmente, sem nenhum prejuízo para você.</p></div>`:''}
-    <h3>Seus dados</h3><p>A transcrição e as análises ficam guardadas por até ${esc(st.retencao)} dias e são acessadas apenas pela equipe de recrutamento. Você pode pedir uma cópia ou a exclusão a qualquer momento pelo e-mail ${esc(st.contato)}. Tratamento conforme a LGPD (Lei 13.709/2018).</p>
-    <div class="stack" style="margin-top:20px">
-      ${analise?`<button class="btn primary" id="aFull">${icon('check')} Autorizo a análise e quero entrar</button><button class="btn" id="aBasic">Entrar sem a análise de expressões</button>`:`<button class="btn primary" id="aBasic">${icon('check')} Entendi e quero entrar</button>`}
-    </div>
+    ${i.features.gravacao?`<h3>Transcrição</h3><p>A conversa será transcrita automaticamente, para que o recrutador possa revisar suas respostas com atenção depois. A transcrição é feita por um serviço de inteligência artificial que não usa seus dados para treinar modelos.</p>`:''}
+    ${(video||analise)?`<h3>O que você autoriza</h3><p class="small muted">Marque o que você autoriza. Você pode entrar sem marcar nada: a entrevista acontece normalmente, sem nenhum prejuízo para você.</p>`:''}
+    ${video?opt('cVid','Gravação em vídeo','A entrevista (imagem e voz) será gravada. O arquivo fica com a equipe de recrutamento e é usado só neste processo seletivo.'):''}
+    ${analise?opt('cAna','Análise de expressões','A plataforma interpreta expressões faciais e linguagem corporal com base nos estudos de Paul Ekman. Isso gera apenas <i>indícios</i> para ajudar o recrutador a fazer boas perguntas. <b>Não aprova nem reprova ninguém</b>: a decisão é sempre do recrutador, com base no conjunto do processo.'):''}
+    <h3>Seus dados</h3><p>A transcrição, a gravação e as análises ficam guardadas por até ${esc(st.retencao)} dias e são acessadas apenas pela equipe de recrutamento. Você pode pedir uma cópia ou a exclusão a qualquer momento pelo e-mail ${esc(st.contato)}. Tratamento conforme a LGPD (Lei 13.709/2018).</p>
+    <div class="stack" style="margin-top:20px"><button class="btn primary" id="aGo">${icon('check')} Entrar na entrevista</button></div>
     <p class="xs muted" style="margin-top:12px">Versão do termo ${CONSENT_VERSION}. Sua escolha fica registrada com data e hora.</p>
   </div>`;
-  const rec=async choice=>{
-    if(i.remote){app.querySelectorAll('.consent button').forEach(b=>b.disabled=true);try{await rpc('nuance_set_consent',{p_code:i.code,p_choice:choice,p_versao:CONSENT_VERSION})}catch(e){app.querySelectorAll('.consent button').forEach(b=>b.disabled=false);toast('Não consegui registrar sua escolha. Tente de novo.');return}i.consent=choice;go('candsala');return}
-    i.consent=choice;S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice,at:new Date().toISOString(),versao:CONSENT_VERSION});save();go('candsala')};
-  const f=$('#aFull'); if(f)f.onclick=()=>rec('full'); $('#aBasic').onclick=()=>rec('basic');
+  const rec=async()=>{
+    const vid=!!($('#cVid')&&$('#cVid').checked), ana=!!($('#cAna')&&$('#cAna').checked), choice=ana?'full':'basic';
+    const btn=$('#aGo');
+    if(i.remote){btn.disabled=true;btn.innerHTML='<span class="spin"></span> Registrando…';try{await rpc('nuance_set_consent',{p_code:i.code,p_choice:choice,p_versao:CONSENT_VERSION,p_video:vid})}catch(e){btn.disabled=false;btn.innerHTML=icon('check')+' Entrar na entrevista';toast('Não consegui registrar sua escolha. Tente de novo.');return}i.consent=choice;i.consentVideo=vid;go('candsala');return}
+    i.consent=choice;i.consentVideo=vid;S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice,video:vid,at:new Date().toISOString(),versao:CONSENT_VERSION});save();go('candsala')};
+  $('#aGo').onclick=rec;
 }
 function vCandSala(){
   const i=cur(); if(!i)return go('candidato');
@@ -684,7 +688,7 @@ function vCandSala(){
       <div class="video" style="aspect-ratio:16/9"><video id="rv" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:none"></video>
         <audio id="cAudio" autoplay playsinline></audio>
         <button class="btn primary unlock" id="cUnlock" style="display:none">Toque para ativar o som</button>
-        <div class="tagtl">${i.features.gravacao?'<span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Transcrição ativa</span>':''}${i.consent==='full'?'<span class="pill terra">Análise autorizada</span>':''}</div>
+        <div class="tagtl">${i.consentVideo?'<span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Gravando</span>':''}${i.features.gravacao?'<span class="pill" style="background:rgba(0,0,0,.55);color:#fff">Transcrição ativa</span>':''}${i.consent==='full'?'<span class="pill terra">Análise autorizada</span>':''}</div>
         <div id="cvWait" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#bbb;text-align:center;padding:20px"><div class="spin" style="width:28px;height:28px;margin-bottom:10px"></div><div>Aguardando o recrutador…</div></div>
         <div class="self" style="overflow:hidden;padding:0"><video id="lv" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover"></video></div></div>
       <div class="card stack" style="gap:10px">
@@ -718,7 +722,7 @@ function vSala(){
   app.innerHTML=`
   <div class="room-top">
     <div style="flex:1;min-width:200px"><h2>${esc(i.candidato)}</h2><div class="small muted">${esc(i.vaga)} · ${esc(i.code)}</div></div>
-    ${i.consent?`<span class="pill ${i.consent==='full'?'ok':'blue'}">${i.consent==='full'?'Análise autorizada':'Análise não autorizada'}</span>`:'<span class="pill warn">Aguardando aceite</span>'}
+    ${i.consent?`<span class="pill ${i.consent==='full'?'ok':'blue'}">${i.consent==='full'?'Análise autorizada':'Análise não autorizada'}</span>${F.video?`<span class="pill ${i.consentVideo?'ok':'blue'}">${i.consentVideo?'Gravação autorizada':'Sem gravação'}</span>`:''}`:'<span class="pill warn">Aguardando aceite</span>'}
     ${F.cronometro?`<span class="pill gray">Bloco <span id="blkName"></span> · <span class="timer" id="blkTime">00:00</span> / <span id="blkTarget"></span></span><button class="btn sm ghost" id="bNextBlk">${icon('next')} Próximo bloco</button>`:''}
     <span class="pill gray">Total <span class="timer" id="totTime">00:00</span></span>
     <button class="btn sm primary" id="bEnd">${icon('stop')} Encerrar</button>
@@ -727,7 +731,7 @@ function vSala(){
   <div class="room" id="roomGrid">
     <div class="stack">
       <div class="video" id="vid">
-        <div class="tagtl">${F.gravacao?'<span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Transcrevendo</span>':''}<span class="pill" style="background:rgba(255,255,255,.15);color:#fff" id="modeTag">${i.demo?'Modo demonstração':'Chamada'}</span></div>
+        <div class="tagtl">${F.gravacao?'<span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Transcrevendo</span>':''}<span class="pill" id="recTag" style="display:none;background:#fff;color:#A3301E"><span class="dot rec"></span>Gravando vídeo <span class="timer" id="recTime">00:00</span></span><span class="pill" style="background:rgba(255,255,255,.15);color:#fff" id="modeTag">${i.demo?'Modo demonstração':'Chamada'}</span></div>
         <svg class="demo-face breathe" id="demoFace" style="${i.demo?'':'display:none'}" viewBox="0 0 200 200" aria-label="Candidata (demonstração)" role="img"><circle cx="100" cy="78" r="40" fill="#8E7F74"/><path d="M30 200c6-50 36-74 70-74s64 24 70 74z" fill="#6E625A"/><path id="mouth" d="M84 92 Q100 100 116 92" stroke="#3A322D" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="86" cy="74" r="3.5" fill="#3A322D"/><circle cx="114" cy="74" r="3.5" fill="#3A322D"/><path id="browL" d="M78 64 L92 62" stroke="#3A322D" stroke-width="3" stroke-linecap="round"/><path id="browR" d="M108 62 L122 64" stroke="#3A322D" stroke-width="3" stroke-linecap="round"/></svg>
         <video id="cam" playsinline muted style="display:none;position:absolute;inset:0"></video>
         <audio id="rAudio" autoplay playsinline></audio>
@@ -805,7 +809,7 @@ function vSala(){
     const check=async manual=>{
       if(!room||view!=='sala'||curId!==i.id||i.consent)return;
       try{const r=await rpc('nuance_get_room',{p_code:i.code});const row=r&&r[0];
-        if(row&&row.consent){const wasOnline=room.mode==='online';recordConsent(i,row.consent);toast(i.candidato.split(' ')[0]+(row.consent==='full'?' aceitou o termo e autorizou a análise':' aceitou o termo (sem análise de expressões)'));if(wasOnline){const o=room.online;room.online=null;try{o&&o.pc&&o.pc.close()}catch(e){}try{o&&o.sig&&o.sig.close()}catch(e){}vSala();setTimeout(startOnline,50)}else vSala();return}
+        if(row&&row.consent){const wasOnline=room.mode==='online';recordConsent(i,row.consent,row.consent_video);toast(i.candidato.split(' ')[0]+(row.consent==='full'?' aceitou o termo e autorizou a análise':' aceitou o termo (sem análise de expressões)'));if(wasOnline){const o=room.online;room.online=null;try{o&&o.pc&&o.pc.close()}catch(e){}try{o&&o.sig&&o.sig.close()}catch(e){}vSala();setTimeout(startOnline,50)}else vSala();return}
         const w=$('#consWait');if(w)w.textContent=row?'Ainda não aceitou. Verificando a cada poucos segundos…':'Sala ainda não publicada online. Abra o convite ou clique em "Chamada online".';
         if(manual)toast('O candidato ainda não aceitou');
       }catch(e){const w=$('#consWait');if(w)w.textContent='Sem conexão com o servidor aqui. Pelo link do site a verificação funciona.'}
@@ -894,7 +898,7 @@ Responda só em JSON: {"topicos":[{"titulo":"título exato","texto":"..."}]}`,tr
 }
 function fallbackSections(i,secs){
   const tem=i.competencias.filter(c=>c.nivel==='tem'||(!c.nivel&&c.status==='ok')).map(c=>c.nome.toLowerCase());
-  const mel=i.competencias.filter(c=>c.nivel==='melhorar'||c.nivel==='nao'||(!c.nivel&&c.status!=='ok')).map(c=>c.nome.toLowerCase());
+  const mel=i.competencias.filter(c=>c.nivel==='melhorar'||c.nivel==='nao'||(!c.nivel&&c.status==='andamento')).map(c=>c.nome.toLowerCase());
   const art=/a$/.test(i.candidato.split(' ')[0].toLowerCase())?'a candidata':'o candidato';
   const lista=a=>a.length>1?a.slice(0,-1).join(', ')+' e '+a[a.length-1]:a[0]||'';
   const map={
@@ -1047,6 +1051,7 @@ async function startCam(){
   } else msg.textContent='';
 }
 function stopCam(){
+  if(room&&room.rec){const ci=cur();if(ci)stopRecording(ci,false)}
   if(room&&room.online) stopOnline();
   if(room)['txR','txC'].forEach(k=>{if(room[k]){room[k].stop();room[k]=null}});
   if(room){room.stopMeter&&room.stopMeter();room.stopRMeter&&room.stopRMeter()}
@@ -1116,7 +1121,9 @@ function scoreEkman(b){
   drawBars();
 }
 function stopRoom(){ if(!room)return; clearInterval(room.tick); clearInterval(room.consentPoll); stopCam(); const i=cur(); if(i){i.duracao=room.elapsed;save()} room=null; }
-function endInterview(){
+async function endInterview(){
+  const i0=cur(); if(room&&room.rec) await stopRecording(i0,false);
+  (RECS[i0.id]||[]).forEach(r=>{if(!r.dl){downloadBlob(r.url,r.name);r.dl=true}}); if((RECS[i0.id]||[]).length)toast('Gravação salva no seu computador (pasta Downloads)');
   if(room&&room.online) stopOnline(true);
   const i=cur(); i.duracao=room.elapsed; i.status='concluida'; stopRoom(); save(); go('parecer',i.id);
 }
@@ -1129,14 +1136,14 @@ let sbP=null, candRoom=null, candRT=null;
 function getSb(){if(!sbP)sbP=import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm').then(m=>m.createClient(SB_URL,SB_KEY,{auth:{persistSession:false}})).catch(e=>{sbP=null;throw e});return sbP}
 function withTimeout(p,ms){return Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),ms))])}
 async function rpc(fn,args){const sb=await withTimeout(getSb(),8000);const {data,error}=await withTimeout(sb.rpc(fn,args),8000);if(error)throw error;return data}
-async function publishRoom(i){await rpc('nuance_upsert_room',{p_code:i.code,p_vaga:i.vaga,p_empresa:S.settings.empresa,p_nome:i.candidato,p_analise:!!i.features.ekman,p_gravacao:!!i.features.gravacao,p_retencao:S.settings.retencao,p_contato:S.settings.contato});i.online=true;save()}
+async function publishRoom(i){await rpc('nuance_upsert_room',{p_code:i.code,p_vaga:i.vaga,p_empresa:S.settings.empresa,p_nome:i.candidato,p_analise:!!i.features.ekman,p_gravacao:!!i.features.gravacao,p_retencao:S.settings.retencao,p_contato:S.settings.contato,p_video:!!i.features.video});i.online=true;save()}
 async function joinChannel(code,onMsg){
   const sb=await getSb(); const ch=sb.channel('nuance-'+code,{config:{broadcast:{self:false}}});
   ch.on('broadcast',{event:'sig'},({payload})=>onMsg(payload));
   await new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error('timeout')),10000);ch.subscribe(st=>{if(st==='SUBSCRIBED'){clearTimeout(t);res()}else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'){clearTimeout(t);rej(new Error(st))}})});
   return {send:p=>ch.send({type:'broadcast',event:'sig',payload:p}),close:()=>{try{sb.removeChannel(ch)}catch(e){}}};
 }
-function recordConsent(i,choice){if(i.consent===choice)return false;i.consent=choice;S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice,at:new Date().toISOString(),versao:CONSENT_VERSION,online:true});save();return true}
+function recordConsent(i,choice,video){video=!!video;if(i.consent===choice&&!!i.consentVideo===video)return false;i.consent=choice;i.consentVideo=video;S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice,video,at:new Date().toISOString(),versao:CONSENT_VERSION,online:true});save();return true}
 
 /* mídia: ICE (STUN/TURN), áudio remoto, controles, medidor */
 let iceCache=null;
@@ -1211,7 +1218,7 @@ async function startOnline(){
   room.running=false; const bp=$('#bPlay'); if(bp)bp.innerHTML=icon('play')+' Demonstração';
   msg.textContent='Conectando ao servidor…';
   try{await publishRoom(i)}catch(e){msg.textContent='Sem conexão com o servidor. A chamada online funciona pelo link do site (GitHub Pages), não aqui dentro do Claude.';return}
-  try{const r=await rpc('nuance_get_room',{p_code:i.code});const row=r&&r[0];if(row&&row.consent&&!i.consent){recordConsent(i,row.consent);vSala();setTimeout(startOnline,50);return}}catch(e){}
+  try{const r=await rpc('nuance_get_room',{p_code:i.code});const row=r&&r[0];if(row&&row.consent&&!i.consent){recordConsent(i,row.consent,row.consent_video);vSala();setTimeout(startOnline,50);return}}catch(e){}
   try{room.stream=await navigator.mediaDevices.getUserMedia(MEDIA)}catch(e){msg.textContent='Libere a câmera e o microfone no navegador (ícone de cadeado na barra de endereço) e clique em "Chamada online" de novo.';return}
   room.mode='online'; room.speaker='R'; room.online={pc:null,dc:null,sig:null,remote:false};
   const sv=$('#selfv'); sv.srcObject=room.stream; sv.style.display='block';
@@ -1233,7 +1240,7 @@ function fallbackSpeechR(){ // sem chave de transcrição: usa o reconhecimento 
 async function onRecMsg(p){
   if(!room||room.mode!=='online')return; const i=cur(), o=room.online; if(!o)return;
   if(p.t==='hello'){
-    if(p.consent&&recordConsent(i,p.consent)){room.online=null;try{o.pc&&o.pc.close()}catch(e){}try{o.sig&&o.sig.close()}catch(e){}vSala();setTimeout(startOnline,50);return}
+    if(p.consent&&recordConsent(i,p.consent,p.video)){room.online=null;try{o.pc&&o.pc.close()}catch(e){}try{o.sig&&o.sig.close()}catch(e){}vSala();setTimeout(startOnline,50);return}
     if(o.pc&&(o.pc.connectionState==='connected'||Date.now()-o.createdAt<15000))return;
     if(o.pc){try{o.pc.close()}catch(e){}}
     const pc=new RTCPeerConnection(room.ice||ICE); o.pc=pc; o.remote=false; o.createdAt=Date.now();
@@ -1247,13 +1254,14 @@ async function onRecMsg(p){
       $('#waitC').style.display='none'; o.remote=true; $('#camMsg').textContent='Conectado com '+i.candidato.split(' ')[0]+'.';
       const lv=levelOf(st); room.remoteLevel=lv; room.stopRMeter&&room.stopRMeter(); room.stopRMeter=meter($('#cMeter'),lv);
       if(i.features.gravacao&&!room.txC){room.txC=startTranscriber(st,'C',(text,err,t0)=>{if(err==='missing_key'){const m=$('#camMsg');if(m)m.textContent+=' Configure a chave do Groq para transcrever a voz do candidato.';return}if(text){addLine('C',text,false,t0);$('#cap').textContent=i.candidato.split(' ')[0]+': '+text}})}
+      if(i.features.video&&i.consentVideo){startRecording(i,st)}
       startEkmanOnRemote();
     };
     pc.onconnectionstatechange=()=>{const m=$('#camMsg');if(!m)return;if(pc.connectionState==='failed')m.textContent='A conexão falhou: a rede está bloqueando a chamada direta. '+(room.ice&&room.ice.turn?'Tente recarregar.':'Configure o servidor de retransmissão (TURN) ou use uma rede fora da empresa.');if(pc.connectionState==='disconnected'){m.textContent='Conexão instável. Tentando reconectar…'}if(pc.connectionState==='closed'){$('#waitC').style.display='flex';o.remote=false}};
     const off=await pc.createOffer(); await pc.setLocalDescription(off); o.sig.send({t:'offer',sdp:pc.localDescription.toJSON()});
   }else if(p.t==='answer'&&o.pc){try{await o.pc.setRemoteDescription(p.sdp)}catch(e){}}
   else if(p.t==='ice'&&p.to==='R'&&o.pc){try{await o.pc.addIceCandidate(p.c)}catch(e){}}
-  else if(p.t==='bye'){$('#waitC').style.display='flex';$('#camMsg').textContent=i.candidato.split(' ')[0]+' saiu da sala. Se ela voltar, a chamada reconecta sozinha.';o.remote=false;o.remoteStream=null;if(o.pc){try{o.pc.close()}catch(e){}o.pc=null}if(room.txC){room.txC.stop();room.txC=null}}
+  else if(p.t==='bye'){stopRecording(i,false);$('#waitC').style.display='flex';$('#camMsg').textContent=i.candidato.split(' ')[0]+' saiu da sala. Se ela voltar, a chamada reconecta sozinha.';o.remote=false;o.remoteStream=null;if(o.pc){try{o.pc.close()}catch(e){}o.pc=null}if(room.txC){room.txC.stop();room.txC=null}}
 }
 async function startEkmanOnRemote(){
   const i=cur(); if(!(i.features.ekman&&i.consent==='full')||room.lm)return;
@@ -1292,7 +1300,7 @@ async function candStart(i){
   try{rt.sig=await joinChannel(i.code,p=>onCandMsg(i,rt,p))}catch(e){st.textContent='Não consegui conectar à sala. Verifique a internet e tente de novo.';$('#cRetry').style.display='';return}
   rt.ice=await getIce();
   st.textContent='Você está na sala. Aguardando o recrutador… Enquanto isso, fale algo e veja se a barra do microfone se mexe.';
-  const hello=()=>{if(!rt.pc||rt.pc.connectionState!=='connected')rt.sig.send({t:'hello',consent:i.consent})};
+  const hello=()=>{if(!rt.pc||rt.pc.connectionState!=='connected')rt.sig.send({t:'hello',consent:i.consent,video:!!i.consentVideo})};
   hello(); rt.helloT=setInterval(hello,3000);
   rt.unload=()=>{try{rt.sig.send({t:'bye'})}catch(e){}}; window.addEventListener('pagehide',rt.unload);
 }
@@ -1327,6 +1335,49 @@ function candStop(){
   if(rt.stream)rt.stream.getTracks().forEach(t=>t.stop());
 }
 
+/* gravação em vídeo: fica no computador do recrutador (sem servidor, sem custo) */
+const RECS={}; // iid -> [{url,name,size}]
+function recName(i,part){const d=new Date(),p=n=>String(n).padStart(2,'0');const clean=s=>String(s).replace(/[\\/:*?"<>|]+/g,'').trim();return `Nuance - ${clean(i.candidato)} - ${clean(i.vaga)} - ${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}h${p(d.getMinutes())}${part>1?' (parte '+part+')':''}.webm`}
+function downloadBlob(url,name){const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove()}
+function startRecording(i,remote){
+  if(!(i.features.video&&i.consentVideo)||typeof MediaRecorder==='undefined')return;
+  stopRecording(i,false);
+  const vt=remote.getVideoTracks()[0]; if(!vt)return;
+  const ctx=actx(); let tracks=[vt];
+  if(ctx){const dest=ctx.createMediaStreamDestination();const srcs=[];
+    [remote,room.stream].forEach(s=>{if(s&&s.getAudioTracks().length){const n=ctx.createMediaStreamSource(new MediaStream(s.getAudioTracks()));n.connect(dest);srcs.push(n)}});
+    tracks.push(dest.stream.getAudioTracks()[0]); room.recSrcs=srcs}
+  else tracks=tracks.concat(remote.getAudioTracks());
+  const mime=['video/webm;codecs=vp8,opus','video/webm;codecs=vp9,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m))||'';
+  let mr; try{mr=new MediaRecorder(new MediaStream(tracks),{...(mime?{mimeType:mime}:{}),videoBitsPerSecond:1000000,audioBitsPerSecond:64000})}catch(e){toast('Este navegador não conseguiu iniciar a gravação.');return}
+  const part=((RECS[i.id]||[]).length)+1, chunks=[];
+  mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  room.rec={mr,chunks,part,t0:Date.now()};
+  mr.start(4000);
+  const tag=$('#recTag'); if(tag) tag.style.display='';
+  room.recTimer=setInterval(()=>{const t=$('#recTime');if(t&&room&&room.rec)t.textContent=fmt((Date.now()-room.rec.t0)/1000)},1000);
+  window.addEventListener('beforeunload',recWarn);
+}
+function recWarn(e){e.preventDefault();e.returnValue='A gravação da entrevista ainda não foi salva.';return e.returnValue}
+function stopRecording(i,download){
+  return new Promise(res=>{
+    if(!room||!room.rec){res();return}
+    const r=room.rec; room.rec=null; clearInterval(room.recTimer);
+    (room.recSrcs||[]).forEach(n=>{try{n.disconnect()}catch(e){}}); room.recSrcs=null;
+    window.removeEventListener('beforeunload',recWarn);
+    const tag=$('#recTag'); if(tag) tag.style.display='none';
+    const done=()=>{
+      if(!r.chunks.length){res();return}
+      const blob=new Blob(r.chunks,{type:'video/webm'}), url=URL.createObjectURL(blob), name=recName(i,r.part);
+      (RECS[i.id]=RECS[i.id]||[]).push({url,name,size:blob.size});
+      i.gravacoes=(i.gravacoes||[]).concat([{name,size:blob.size,at:new Date().toISOString()}]); save();
+      if(download){downloadBlob(url,name);toast('Gravação salva no seu computador (pasta Downloads)')}
+      res();
+    };
+    if(r.mr.state==='inactive')done(); else {r.mr.onstop=done; try{r.mr.stop()}catch(e){done()}}
+  });
+}
+
 /* ---------- PARECER ---------- */
 function vParecer(){
   const i=cur(); if(!i)return go('home'); const F=i.features; const dur=Math.max(i.duracao,1);
@@ -1345,6 +1396,9 @@ function vParecer(){
         <p class="disclaimer">Você pode editar qualquer tópico. A IA não decide aprovação e não usa indícios de emoção como conclusão.</p></div>`})():''}
       ${(i.indicios.length||i.marks.length)?`<div class="card"><h3>Linha do tempo</h3><div class="timeline">${evs}${mks}</div><div class="legend">${Object.entries(EMO).filter(([k])=>i.indicios.some(x=>x.emo===k)).map(([k,e])=>`<span><i style="background:${e.cor}"></i>${e.nome}</span>`).join('')}${i.marks.length?'<span><i style="background:var(--ink)"></i>Suas marcações</span>':''}${i.indicios.some(x=>x.inc)?'<span><i style="outline:2px solid var(--warn);background:#fff"></i>Incongruência</span>':''}</div>
         <div class="small" style="margin-top:10px">${i.marks.map(m=>`<div>${fmt(m.t)} · <b>${esc(m.label)}</b>${m.note?' — '+esc(m.note):''}</div>`).join('')}</div></div>`:''}
+      ${(RECS[i.id]||[]).length||(i.gravacoes||[]).length?`<div class="card stack"><h3>Gravação</h3>
+        ${(RECS[i.id]||[]).length?(RECS[i.id]).map((r,k)=>`<video controls src="${r.url}" style="width:100%;border-radius:10px;background:#000"></video><div class="row"><span class="small" style="flex:1;word-break:break-all">${esc(r.name)} · ${(r.size/1048576).toFixed(0)} MB</span><button class="btn sm" data-rdl="${k}">${icon('copy')} Baixar de novo</button></div>`).join(''):`<p class="small muted">O arquivo foi salvo no computador usado na entrevista (pasta Downloads):</p>${i.gravacoes.map(g=>`<div class="small">${esc(g.name)}</div>`).join('')}`}
+        <p class="xs muted">Guarde o arquivo em uma pasta de acesso restrito e apague depois do prazo de retenção (${esc(S.settings.retencao)} dias).</p></div>`:''}
       ${F.devolutiva?`<div class="card"><div class="row"><h3>Devolutiva ao candidato</h3><span class="spacer"></span><button class="btn sm" id="bDev">${icon('spark')} ${i.devolutiva?'Refazer':'Gerar'} rascunho</button></div><div id="devOut" style="margin-top:8px">${i.devolutiva?`<div class="msgbox">${esc(i.devolutiva)}</div><button class="btn sm ghost" id="cDev" style="margin-top:8px">${icon('copy')} Copiar</button>`:'<p class="small muted">Rascunho de retorno respeitoso, sem citar a análise de expressões.</p>'}</div></div>`:''}
     </div>
     <div class="stack">
@@ -1366,6 +1420,7 @@ function vParecer(){
   if(!i.competencias.some(c=>c.sug)&&i.transcript.some(l=>l.who==='C')&&!vParecer._auto?.[i.id]){vParecer._auto={...(vParecer._auto||{}),[i.id]:true};setTimeout(async()=>{const b=$('#bSugLv');if(!(b&&view==='parecer'&&curId===i.id))return;await suggestLevels(i,b);if(i.features.parecer){const bp=$('#bPar');if(bp){bp.innerHTML='<span class="spin"></span> Escrevendo…';bp.disabled=true}await fillSections(i,null,false);if(view==='parecer'&&curId===i.id)vParecer()}},300)}
   const trText=()=>i.transcript.map(l=>`[${fmt(l.t)}] ${l.who==='C'?i.candidato:'Recrutador'}: ${l.text}`).join('\n');
   const ct=$('#cTr'); if(ct) ct.onclick=()=>copy(trText());
+  app.querySelectorAll('[data-rdl]').forEach(b=>b.onclick=()=>{const r=RECS[i.id][+b.dataset.rdl];downloadBlob(r.url,r.name)});
   const parText=()=>{const t=tplOf(i);return `${i.candidato}\nCargo avaliado: ${i.vaga}\n\n`+t.secoes.filter(s=>s.ativa&&i.secoes[s.id]).map(s=>`${s.titulo}\n${i.secoes[s.id]}`).join('\n\n')+(i.parecerFinal?`\n\nParecer final: ${i.parecerFinal}`:'')+(t.rodape?`\n\n${t.rodape}`:'')};
   const cp=$('#cPar'); if(cp) cp.onclick=()=>copy(parText());
   app.querySelectorAll('[data-sec]').forEach(ta=>ta.addEventListener('input',()=>{i.secoes[ta.dataset.sec]=ta.value;save()}));
@@ -1524,7 +1579,7 @@ function vLgpd(){
       <p class="xs muted">Esses dados aparecem no termo que o candidato vê antes de entrar.</p>
     </div>
     <div class="card"><h3 style="margin-bottom:8px">Aceites registrados</h3>
-      ${S.consents.length?[...S.consents].reverse().map(c=>`<div class="list-item"><div style="flex:1;min-width:160px"><b>${esc(c.candidato)}</b><div class="xs muted">${new Date(c.at).toLocaleString('pt-BR')} · ${esc(c.code)} · termo v${esc(c.versao)}${c.simulado?' · simulado':''}</div></div><span class="pill ${c.choice==='full'?'ok':'blue'}">${c.choice==='full'?'Autorizou análise':'Só transcrição'}</span></div>`).join(''):'<p class="muted small">Nenhum aceite ainda.</p>'}
+      ${S.consents.length?[...S.consents].reverse().map(c=>`<div class="list-item"><div style="flex:1;min-width:160px"><b>${esc(c.candidato)}</b><div class="xs muted">${new Date(c.at).toLocaleString('pt-BR')} · ${esc(c.code)} · termo v${esc(c.versao)}${c.simulado?' · simulado':''}</div></div><span class="pill ${c.choice==='full'?'ok':'blue'}">${c.choice==='full'?'Autorizou análise':'Sem análise'}</span>${c.video!==undefined?`<span class="pill ${c.video?'ok':'blue'}">${c.video?'Autorizou gravação':'Sem gravação'}</span>`:''}</div>`).join(''):'<p class="muted small">Nenhum aceite ainda.</p>'}
     </div>
   </div>
   ${S.interviews.some(i=>i.demo)?`<div class="card row" style="margin-top:16px"><div style="flex:1;min-width:200px"><b>Dados de demonstração</b><div class="small muted">Ana Souza e Bruno Lima são exemplos para conhecer o Nuance.</div></div><button class="btn sm danger" id="bDelDemo">Remover dados de demonstração</button></div>`:''}

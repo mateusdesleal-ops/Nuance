@@ -46,7 +46,9 @@ Backend: Supabase (projeto `nuance`, região São Paulo). A tabela `rooms` guard
 
 Transcrição: feita no servidor (Whisper no Groq, secret `GROQ_API_KEY`), uma voz por vez — o microfone do recrutador e o áudio recebido do candidato são transcritos separadamente, em blocos de 10 s, ignorando silêncio. O navegador do candidato não faz reconhecimento de voz (no celular isso cortava o áudio da chamada).
 
-Redes corporativas: configure o TURN da Cloudflare (1.000 GB/mês grátis) com os secrets `CF_TURN_KEY_ID` e `CF_TURN_API_TOKEN` no Supabase. A função `nuance-ai` gera credenciais temporárias para cada chamada. Alternativa: `TURN_URLS`, `TURN_USERNAME`, `TURN_CREDENTIAL`.
+Gravação em vídeo: com autorização do candidato (opção separada no termo), o vídeo do candidato e o áudio dos dois são gravados no navegador do recrutador e baixados como .webm ao encerrar. Nada é enviado a servidor.
+
+Redes corporativas: configure o TURN da Cloudflare (1.000 GB/mês grátis, sem cartão) ou o Open Relay da Metered (20 GB/mês grátis; secret `METERED_TURN_URL`) com os secrets `CF_TURN_KEY_ID` e `CF_TURN_API_TOKEN` no Supabase. A função `nuance-ai` gera credenciais temporárias para cada chamada. Alternativa: `TURN_URLS`, `TURN_USERNAME`, `TURN_CREDENTIAL`.
 
 Leitura de expressões: calibra o rosto neutro nos primeiros ~12 s, reduz o peso dos movimentos da boca enquanto a pessoa fala e liga cada indício ao trecho que estava sendo dito.
 

@@ -61,6 +61,16 @@ async function iceServers() {
       } catch (e) { console.error("turn_error", String(e)); }
     }
   }
+  // Open Relay / Metered (20 GB/mês grátis): secret METERED_TURN_URL = URL de credenciais com a apiKey,
+  // ex.: https://SEUAPP.metered.live/api/v1/turn/credentials?apiKey=XXXX
+  const mUrl = Deno.env.get("METERED_TURN_URL");
+  if (mUrl) {
+    try {
+      const r = await fetch(mUrl);
+      if (r.ok) { const list = asList(await r.json()); if (list.length) return { iceServers: [...STUN, ...list], turn: true }; }
+      else console.error("metered_error", r.status, (await r.text()).slice(0, 300));
+    } catch (e) { console.error("metered_error", String(e)); }
+  }
   // TURN genérico (ex.: Metered): TURN_URLS (separadas por vírgula), TURN_USERNAME, TURN_CREDENTIAL
   const urls = Deno.env.get("TURN_URLS");
   if (urls) return { iceServers: [...STUN, { urls: urls.split(",").map((s) => s.trim()), username: Deno.env.get("TURN_USERNAME") ?? "", credential: Deno.env.get("TURN_CREDENTIAL") ?? "" }], turn: true };
