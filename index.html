@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nuance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#2B2B2B; --ink2:#5A5652; --muted:#8A847E; --line:#E9E2DA; --paper:#FBF6F1; --card:#FFFFFF;
+  --terra:#E2603B; --terra-d:#B9472A; --salmon:#F4AA91; --salmon-l:#FCE7DE;
+  --ok:#2F7D5B; --ok-l:#E3F2EA; --warn:#9A5B00; --warn-l:#FFF1D6; --blue:#2B5C8A; --blue-l:#E6EFF8;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:'Manrope',system-ui,sans-serif;font-size:15px;line-height:1.5}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--terra-d)}
+h1,h2,h3{margin:0;line-height:1.2;letter-spacing:-.01em}
+h1{font-size:28px;font-weight:800}
+h2{font-size:20px;font-weight:700}
+h3{font-size:16px;font-weight:700}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.xs{font-size:12px}
+
+/* splash */
+#splash{position:fixed;inset:0;background:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;transition:opacity .6s ease, visibility .6s;cursor:pointer}
+#splash.hide{opacity:0;visibility:hidden}
+#splash svg{width:170px;height:auto;overflow:visible}
+.sp-a{animation:spA .7s cubic-bezier(.2,.8,.2,1) both}
+.sp-b{animation:spB .7s cubic-bezier(.2,.8,.2,1) .25s both}
+.sp-i{animation:spI .6s ease .85s both;transform-origin:350px 270px}
+@keyframes spA{from{opacity:0;transform:translateX(-90px)}to{opacity:1;transform:none}}
+@keyframes spB{from{opacity:0;transform:translateX(90px)}to{opacity:1;transform:none}}
+@keyframes spI{0%{opacity:0;transform:scale(.9)}60%{opacity:1;transform:scale(1.04)}100%{opacity:1;transform:scale(1)}}
+.wordmark{display:flex;margin-top:22px;font-weight:800;font-size:54px;letter-spacing:-2px;color:var(--paper)}
+.wordmark span{display:inline-block;animation:wm .5s cubic-bezier(.2,.8,.2,1) both}
+@keyframes wm{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.tagline{color:var(--salmon);margin-top:8px;font-size:15px;animation:wm .6s ease 1.7s both}
+
+/* layout */
+header.top{position:sticky;top:0;z-index:20;background:rgba(251,246,241,.92);backdrop-filter:saturate(1.2);border-bottom:1px solid var(--line)}
+.top-in{max-width:1240px;margin:0 auto;display:flex;align-items:center;gap:16px;padding:10px 20px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:22px;letter-spacing:-1px;background:none;border:0;padding:4px 0}
+.brand svg{width:34px;height:auto}
+nav.main{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+nav.main button{background:none;border:0;padding:8px 12px;border-radius:10px;color:var(--ink2);font-weight:600;min-height:40px}
+nav.main button:hover{background:#F2EBE3}
+nav.main button.on{background:var(--ink);color:var(--paper)}
+main{max-width:1240px;margin:0 auto;padding:24px 20px 80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.grid2,.grid3{grid-template-columns:minmax(0,1fr)}}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:12px}
+.spacer{flex:1}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 18px;border-radius:12px;border:1px solid var(--ink);background:var(--card);font-weight:700;transition:transform .08s}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--terra);border-color:var(--terra);color:#fff}
+.btn.primary:hover{background:var(--terra-d);border-color:var(--terra-d)}
+.btn.dark{background:var(--ink);color:var(--paper)}
+.btn.ghost{border-color:var(--line)}
+.btn.sm{min-height:36px;padding:6px 12px;font-size:13px;border-radius:10px}
+.btn.danger{border-color:#C2412D;color:#A3301E}
+label.f{display:block;font-weight:600;font-size:13px;margin-bottom:6px;color:var(--ink2)}
+input[type=text],input[type=number],textarea,select{width:100%;border:1px solid #D9D0C6;border-radius:10px;padding:10px 12px;background:#fff;min-height:44px}
+textarea{min-height:110px;resize:vertical}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid var(--terra);outline-offset:1px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.pill.ok{background:var(--ok-l);color:var(--ok)}
+.pill.warn{background:var(--warn-l);color:var(--warn)}
+.pill.terra{background:var(--salmon-l);color:var(--terra-d)}
+.pill.gray{background:#F0EBE5;color:var(--ink2)}
+.pill.blue{background:var(--blue-l);color:var(--blue)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+.rec{animation:blink 1.4s infinite}
+@keyframes blink{50%{opacity:.25}}
+hr.s{border:0;border-top:1px solid var(--line);margin:16px 0}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:24px;align-items:center;margin-bottom:28px}
+@media (max-width:820px){.hero{grid-template-columns:1fr}}
+.hero-logo{display:flex;justify-content:center;padding:20px}
+.hero-logo svg{width:min(300px,70vw);height:auto;overflow:visible}
+.bob-a{animation:bobA 5s ease-in-out infinite}
+.bob-b{animation:bobB 5s ease-in-out infinite}
+.glow{animation:glow 5s ease-in-out infinite}
+@keyframes bobA{0%,100%{transform:translate(0,0)}50%{transform:translate(-10px,-6px)}}
+@keyframes bobB{0%,100%{transform:translate(0,0)}50%{transform:translate(10px,6px)}}
+@keyframes glow{0%,100%{opacity:1}50%{opacity:.82}}
+.hero h1{font-size:40px;letter-spacing:-1.5px}
+@media (max-width:820px){.hero h1{font-size:30px}}
+.role-card{display:flex;gap:14px;align-items:flex-start;text-align:left;width:100%;cursor:pointer}
+.role-card:hover{border-color:var(--terra)}
+.role-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.list-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.list-item:first-child{border-top:0}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--salmon-l);color:var(--terra-d);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0}
+
+/* toggles */
+.tg{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.tg:first-of-type{border-top:0}
+.switch{position:relative;width:46px;height:28px;flex-shrink:0}
+.switch input{opacity:0;width:100%;height:100%;position:absolute;inset:0;margin:0;cursor:pointer;z-index:1}
+.switch span{position:absolute;inset:0;background:#D8CFC5;border-radius:999px;transition:.2s}
+.switch span:after{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked+span{background:var(--terra)}
+.switch input:checked+span:after{transform:translateX(18px)}
+.switch input:focus-visible+span{outline:2px solid var(--terra);outline-offset:2px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#F2EBE3;font-size:13px;font-weight:600}
+.chip button{border:0;background:none;padding:0 2px;color:var(--muted);font-size:16px;line-height:1;min-width:24px;min-height:24px}
+
+/* code */
+.code{font-size:44px;font-weight:800;letter-spacing:4px;color:var(--terra);font-variant-numeric:tabular-nums}
+.msgbox{background:#F6F0E9;border-radius:12px;padding:14px;white-space:pre-wrap;font-size:14px}
+
+/* consent */
+.consent{max-width:640px;margin:0 auto}
+.consent h3{margin-top:16px;margin-bottom:4px}
+.consent .hl{background:var(--salmon-l);border-radius:12px;padding:14px;margin-top:8px}
+
+/* room */
+.room-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.room{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(320px,1fr);gap:14px;align-items:start}
+.room.wide{grid-template-columns:minmax(0,1fr)}
+.room.wide .video{aspect-ratio:16/8.2}
+@media (max-width:960px){.room{grid-template-columns:minmax(0,1fr)}#bWide{display:none}.room .video{aspect-ratio:4/3}.caption{font-size:12px;right:86px;padding:6px 10px}.video .self{width:70px;height:50px}}
+.tabs{display:flex;gap:4px;background:#F0EBE5;border-radius:12px;padding:4px}
+.tabs button{flex:1;border:0;background:none;border-radius:9px;padding:8px 6px;font-weight:700;font-size:13px;color:var(--ink2);min-height:38px}
+.tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.tabp{display:none;flex-direction:column;gap:12px}
+.tabp.on{display:flex}
+.tabs button .badge{display:inline-block;min-width:8px;height:8px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle}
+.video{position:relative;background:#1F1E1D;border-radius:var(--r);aspect-ratio:16/10;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.video video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.video .tagtl{position:absolute;top:10px;left:10px;display:flex;gap:6px;flex-wrap:wrap}
+.video .self{position:absolute;right:10px;bottom:10px;width:92px;height:64px;border-radius:10px;background:#3A3836;border:1px solid #555;color:#bbb;font-size:12px;display:flex;align-items:center;justify-content:center}
+.demo-face{width:44%;max-width:260px}
+.breathe{animation:breathe 4s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes breathe{50%{transform:scale(1.015) translateY(-2px)}}
+.caption{position:absolute;left:12px;right:110px;bottom:12px;background:rgba(0,0,0,.6);color:#fff;border-radius:10px;padding:8px 12px;font-size:14px;min-height:20px}
+.caption:empty{display:none}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.panel-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.panel-h h3{font-size:15px}
+.transcript{max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:8px;font-size:14px;scroll-behavior:smooth}
+.tl{padding:6px 8px;border-radius:8px}
+.tl b{font-weight:700}
+.tl .ts{color:var(--muted);font-size:12px;margin-right:6px;font-variant-numeric:tabular-nums}
+.tl.flag{background:var(--warn-l)}
+.tl.interim{color:var(--muted);font-style:italic}
+.bars{display:grid;grid-template-columns:72px minmax(0,1fr) 34px;gap:6px 8px;align-items:center;font-size:12px}
+.bar{height:8px;background:#F0EBE5;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--terra);border-radius:99px;transition:width .25s}
+.ind{border-top:1px solid var(--line);padding:9px 0;font-size:13px}
+.ind:first-child{border-top:0}
+.ind.inc{background:var(--warn-l);border-radius:10px;padding:9px 10px;border-top:0;margin-bottom:4px}
+.ask{background:var(--blue-l);border-radius:var(--r);padding:14px;color:#173A5E}
+.ask .q{font-size:16px;font-weight:700;margin:4px 0 6px}
+.cl{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;padding:8px 4px;text-align:left;border-top:1px solid var(--line);min-height:44px}
+.cl:first-child{border-top:0}
+.cl .st{width:22px;height:22px;border-radius:50%;border:2px solid #CFC6BC;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.cl.and .st{border-color:var(--warn);color:var(--warn)}
+.cl.ok .st{border-color:var(--ok);background:var(--ok);color:#fff}
+.qitem{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
+.qitem:first-child{border-top:0}
+.qitem.done{color:var(--muted);text-decoration:line-through}
+.marks{display:flex;gap:6px;flex-wrap:wrap}
+.disclaimer{font-size:12px;color:var(--muted);margin-top:8px}
+.timer{font-variant-numeric:tabular-nums;font-weight:800}
+
+/* parecer */
+.md h3{margin:16px 0 6px;font-size:16px}
+.md ul{margin:6px 0;padding-left:20px}
+.md p{margin:6px 0}
+.timeline{position:relative;height:46px;background:#F6F0E9;border-radius:10px;margin-top:8px}
+.timeline .ev{position:absolute;top:8px;width:10px;height:30px;border-radius:4px;transform:translateX(-50%)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.comp{border-top:1px solid var(--line);padding:14px 0}
+.comp:first-of-type{border-top:0}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.seg button{border:1px solid #D9D0C6;background:#fff;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;min-height:40px}
+.seg button.on.tem{background:var(--ok);border-color:var(--ok);color:#fff}
+.seg button.on.melhorar{background:#B26B00;border-color:#B26B00;color:#fff}
+.seg button.on.nao{background:#A3301E;border-color:#A3301E;color:#fff}
+.sug{background:#F6F0E9;border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13px}
+.sug q{display:block;font-style:italic;color:var(--ink2);margin-top:4px}
+.lv{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.lv.tem{background:var(--ok-l);color:var(--ok)}
+.lv.melhorar{background:var(--warn-l);color:var(--warn)}
+.lv.nao{background:#FBE4E0;color:#A3301E}
+.lv.sem{background:#F0EBE5;color:var(--ink2)}
+table.cmp{width:100%;border-collapse:collapse;font-size:14px}
+table.cmp th,table.cmp td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.cmp th{font-size:12px;color:var(--muted);font-weight:700}
+.tablewrap{overflow-x:auto}
+
+/* modal + toast */
+#modal{position:fixed;inset:0;background:rgba(30,28,26,.5);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
+#modal.on{display:flex}
+#modal .card{max-width:440px;width:100%}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(30px);background:var(--ink);color:var(--paper);padding:12px 18px;border-radius:12px;font-weight:600;opacity:0;transition:.25s;z-index:70;pointer-events:none;max-width:90vw}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="splash" role="button" aria-label="Pular abertura">
+  <svg viewBox="20 40 525 440" aria-hidden="true">
+    <defs><clipPath id="spClip"><path d="M 347 115 C 450 115 533 188 533 280 C 533 310 524 338 504 369 L 532 455 Q 539 474 521 463 L 434 411 C 408 421 375 425 349 425 C 251 425 171 362 171 276 C 171 185 250 115 347 115 Z"/></clipPath></defs>
+    <path class="sp-a" d="M 230 47 C 330 47 408 120 408 217 C 408 314 325 390 224 390 C 198 390 171 385 149 375 L 63 433 Q 46 444 51 424 L 73 337 C 42 303 27 260 27 219 C 27 120 114 47 230 47 Z" fill="#FBF6F1"/>
+    <path class="sp-b" d="M 347 115 C 450 115 533 188 533 280 C 533 310 524 338 504 369 L 532 455 Q 539 474 521 463 L 434 411 C 408 421 375 425 349 425 C 251 425 171 362 171 276 C 171 185 250 115 347 115 Z" fill="#F4AA91"/>
+    <path class="sp-i" d="M 230 47 C 330 47 408 120 408 217 C 408 314 325 390 224 390 C 198 390 171 385 149 375 L 63 433 Q 46 444 51 424 L 73 337 C 42 303 27 260 27 219 C 27 120 114 47 230 47 Z" fill="#E2603B" clip-path="url(#spClip)"/>
+  </svg>
+  <div class="wordmark" aria-label="nuance"></div>
+  <div class="tagline">Entrevistas com mais percepção</div>
+</div>
+
+<header class="top">
+  <div class="top-in">
+    <button class="brand" data-go="home" aria-label="Nuance, início">
+      <svg viewBox="20 40 525 440" aria-hidden="true">
+        <defs><clipPath id="hdClip"><path d="M 347 115 C 450 115 533 188 533 280 C 533 310 524 338 504 369 L 532 455 Q 539 474 521 463 L 434 411 C 408 421 375 425 349 425 C 251 425 171 362 171 276 C 171 185 250 115 347 115 Z"/></clipPath></defs>
+        <path d="M 230 47 C 330 47 408 120 408 217 C 408 314 325 390 224 390 C 198 390 171 385 149 375 L 63 433 Q 46 444 51 424 L 73 337 C 42 303 27 260 27 219 C 27 120 114 47 230 47 Z" fill="#2B2B2B"/>
+        <path d="M 347 115 C 450 115 533 188 533 280 C 533 310 524 338 504 369 L 532 455 Q 539 474 521 463 L 434 411 C 408 421 375 425 349 425 C 251 425 171 362 171 276 C 171 185 250 115 347 115 Z" fill="#F4AA91"/>
+        <path d="M 230 47 C 330 47 408 120 408 217 C 408 314 325 390 224 390 C 198 390 171 385 149 375 L 63 433 Q 46 444 51 424 L 73 337 C 42 303 27 260 27 219 C 27 120 114 47 230 47 Z" fill="#E2603B" clip-path="url(#hdClip)"/>
+      </svg>
+      nuance
+    </button>
+    <nav class="main" aria-label="Principal">
+      <button data-go="home">Início</button>
+      <button data-go="nova">Nova entrevista</button>
+      <button data-go="comparar">Comparar</button>
+      <button data-go="modelos">Modelos</button>
+      <button data-go="lgpd">LGPD</button>
+    </nav>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<div id="modal" role="dialog" aria-modal="true"><div class="card stack" id="modalBody"></div></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ---------- constantes ---------- */
+const EMO = {
+  alegria:{nome:'Alegria',cor:'#E9A23B',au:'Bochechas elevadas + cantos da boca para cima (AU6 + AU12)',dica:'Explore o que gerou entusiasmo: "O que mais te motivou nessa experiência?"'},
+  tristeza:{nome:'Tristeza',cor:'#5C7FA3',au:'Parte interna das sobrancelhas erguida + cantos da boca para baixo (AU1 + AU15)',dica:'Acolha e aprofunde: "Como foi esse momento para você?"'},
+  surpresa:{nome:'Surpresa',cor:'#7A6BB0',au:'Sobrancelhas erguidas + olhos arregalados + boca aberta (AU1 + AU2 + AU5 + AU26)',dica:'Verifique se a pergunta foi inesperada e dê espaço: "Fique à vontade para pensar."'},
+  medo:{nome:'Medo',cor:'#3E8E8A',au:'Sobrancelhas erguidas e unidas + lábios esticados (AU1 + AU2 + AU4 + AU20)',dica:'Reduza a pressão e peça um exemplo: "Me conte uma situação parecida que você já viveu."'},
+  raiva:{nome:'Raiva',cor:'#C2412D',au:'Sobrancelhas abaixadas + lábios pressionados (AU4 + AU23)',dica:'Investigue o incômodo: "O que mais te incomodou nessa situação?"'},
+  nojo:{nome:'Nojo',cor:'#6E8B3D',au:'Nariz franzido + lábio superior erguido (AU9 + AU10)',dica:'Investigue a rejeição: "O que você mudaria nesse cenário?"'},
+  desprezo:{nome:'Desprezo',cor:'#8A5A44',au:'Canto da boca erguido de um lado só (AU14 unilateral)',dica:'Peça um exemplo concreto: "Me conte uma situação específica em que vocês discordaram."'}
+};
+const NEG = ['tristeza','medo','raiva','nojo','desprezo'];
+const POS_WORDS = ['tranquilo','tranquila','ótimo','ótima','muito bem','se deu bem','me dou bem','adoro','amo','nunca tive problema','sempre','perfeito','excelente','tudo certo','sem problema','super'];
+const FEATURES = [
+  ['roteiro','Roteiro por vaga','IA monta perguntas por competência','antes'],
+  ['curriculo','Leitura do currículo','Aponta lacunas e pontos a confirmar','antes'],
+  ['convite','Convite com código','Mensagem pronta para e-mail ou WhatsApp','antes'],
+  ['gravacao','Gravação e transcrição','Transcrição ao vivo da conversa','durante'],
+  ['ekman','Painel Ekman','Indícios das 7 emoções básicas','durante'],
+  ['incongruencia','Alerta de incongruência','Fala positiva + expressão negativa','durante'],
+  ['sugestoes','Perguntas sugeridas','Copiloto sugere a próxima pergunta','durante'],
+  ['checklist','Checklist de competências','O que já foi coberto e o que falta','durante'],
+  ['marcacao','Marcação rápida','Suas observações com um toque','durante'],
+  ['cronometro','Cronômetro por bloco','Ritmo por competência','durante'],
+  ['parecer','Parecer no seu modelo','IA preenche cada tópico durante a entrevista','depois'],
+  ['comparativo','Comparativo de candidatos','Lado a lado, mesmos critérios','depois'],
+  ['pares','Avaliação por pares','Gestor ou colega comenta','depois'],
+  ['devolutiva','Devolutiva ao candidato','Rascunho de feedback respeitoso','depois']
+];
+const DEFAULT_COMPS = [
+  {nome:'Comunicação',perguntas:['Conte um pouco da sua trajetória profissional.','Como você adapta sua comunicação para públicos diferentes?']},
+  {nome:'Gestão de conflitos',perguntas:['Me conte de um conflito que você teve com um gestor.','Se houvesse uma discordância sobre o perfil de uma vaga, como você agiria?']},
+  {nome:'Orientação a resultados',perguntas:['Qual foi o resultado concreto dessa ação?','Que indicador você mais se orgulha de ter melhorado?']},
+  {nome:'Organização e planejamento',perguntas:['Como você organiza sua rotina com muitas vagas abertas?','Como define prioridades quando tudo parece urgente?']},
+  {nome:'Liderança',perguntas:['Já liderou alguém diretamente?','Como você desenvolve pessoas menos experientes?']}
+];
+const MARKS = ['Hesitou','Se animou','Resposta vaga','Exemplo forte','Mudou de postura','Evitou o tema'];
+const CONSENT_VERSION = '1.0';
+const PARECER_FINAL = ['Aprovado','Aprovado com ressalvas','Não recomendado','Em análise'];
+const SENSITIVE_RULE = 'Nunca escreva sobre saúde física ou mental (nem sugira diagnósticos), religião, orientação sexual, origem, opinião política ou gravidez, mesmo que tenham surgido na conversa. Não use os indícios de emoção da plataforma como conclusão sobre a pessoa.';
+function defaultTemplate(){return {id:'t_padrao',nome:'Parecer de avaliação (padrão)',padrao:true,
+  estilo:'Terceira pessoa ("o candidato", "a candidata", "o funcionário"), linguagem formal e objetiva, em parágrafos corridos de 3 a 6 frases, sem listas. Verbos no passado para o que foi observado ("demonstrou", "apresentou", "observou-se"). Comece a análise de perfil com "Durante o processo de avaliação, ...". Equilibre pontos fortes e pontos de desenvolvimento, introduzindo estes com "No entanto" ou "Contudo". Cite os exercícios aplicados (simulação de gestão, role play de feedback) quando houver. Recomendações começam com "Recomenda-se".',
+  rodape:'Este parecer é confidencial e não deverá ser compartilhado.',
+  secoes:[
+    {id:'s_pessoais',titulo:'Dados Pessoais e Familiares',ativa:false,instrucao:'Somente o que o candidato compartilhou espontaneamente sobre sua situação pessoal, em uma ou duas frases neutras. Atenção: estado civil e situação familiar não podem ser critério de seleção (Lei 9.029/95).'},
+    {id:'s_formacao',titulo:'Formação e Experiência Profissional',ativa:true,instrucao:'Formação acadêmica (cursos e anos), especializações e MBAs, tempo de empresa, cargo atual e trajetória profissional. Use o currículo e o que o candidato contou.'},
+    {id:'s_perfil',titulo:'Perfil e Habilidades',ativa:true,instrucao:'Como o candidato se mostrou na avaliação: perfil comportamental, comunicação, organização, relacionamento, gerenciamento de estresse e liderança. Primeiro os pontos positivos, depois os pontos de desenvolvimento.'},
+    {id:'s_fortes',titulo:'Pontos Fortes',ativa:true,instrucao:'Uma frase com as principais forças, separadas por vírgula.'},
+    {id:'s_desenv',titulo:'Áreas de Desenvolvimento',ativa:true,instrucao:'Uma frase com as competências que precisam ser desenvolvidas.'},
+    {id:'s_conclusao',titulo:'Recomendações e Conclusão',ativa:true,instrucao:'Síntese do potencial para a função e recomendação de desenvolvimento ("Recomenda-se um plano de desenvolvimento voltado a..."). Não decida aprovação: o parecer final é do recrutador.'}
+  ]}}
+function tplOf(i){return S.templates.find(t=>t.id===i.templateId)||S.templates.find(t=>t.padrao)||S.templates[0]}
+const NIVEL = {tem:'Tem a competência',melhorar:'Tem, mas pode melhorar',nao:'Não tem',sem:'Sem evidência suficiente'};
+const NIVEL_CURTO = {tem:'Tem',melhorar:'Pode melhorar',nao:'Não tem',sem:'Sem evidência'};
+
+/* ---------- demo ---------- */
+const DEMO = [
+  {t:1,who:'R',text:'Olá, Ana! Obrigado por participar. Pode me contar um pouco da sua trajetória?'},
+  {t:6,who:'C',text:'Claro! Trabalho há cinco anos com recrutamento, os últimos três numa indústria de alimentos, cuidando de vagas operacionais e administrativas.',comp:['Comunicação','and']},
+  {t:8,emo:'alegria',v:.72,dur:1400},
+  {t:14,who:'R',text:'Que bom. Me conte de um conflito que você teve com um gestor.',comp:['Comunicação','ok']},
+  {t:19,who:'C',text:'Foi tranquilo, a gente sempre se deu muito bem, nunca tive problema.',comp:['Gestão de conflitos','and']},
+  {t:21,emo:'desprezo',v:.64,dur:380},
+  {t:27,who:'R',text:'Entendi. E se houvesse uma discordância sobre o perfil de uma vaga, como você agiria?'},
+  {t:31,emo:'surpresa',v:.55,dur:700},
+  {t:33,who:'C',text:'Bom... uma vez o gestor queria contratar alguém sem passar pelo processo. Eu fiquei bem incomodada, mas levei dados mostrando o custo de uma contratação errada.'},
+  {t:36,emo:'raiva',v:.48,dur:900},
+  {t:42,who:'R',text:'E qual foi o resultado?',comp:['Gestão de conflitos','ok']},
+  {t:45,who:'C',text:'Ele aceitou fazer o processo completo, e o turnover da área caiu de 18% para 9% em um ano.',comp:['Orientação a resultados','ok']},
+  {t:47,emo:'alegria',v:.81,dur:1800},
+  {t:53,who:'R',text:'Excelente. Como você organiza sua rotina quando tem muitas vagas abertas ao mesmo tempo?'},
+  {t:58,who:'C',text:'Uso um quadro com prioridades por urgência e impacto, e reviso toda segunda com os gestores.',comp:['Organização e planejamento','ok']},
+  {t:65,who:'R',text:'Já liderou alguém diretamente?'},
+  {t:68,who:'C',text:'Ainda não formalmente... mas já treinei dois estagiários.',comp:['Liderança','and']},
+  {t:69,emo:'tristeza',v:.46,dur:1100},
+  {t:70,emo:'medo',v:.52,dur:320},
+  {t:76,end:true}
+];
+
+/* ---------- estado ---------- */
+let S = load() || seed();
+let view = 'home', curId = null, room = null, sampleFn = null;
+
+function seed(){
+  const now = Date.now();
+  const allOn = Object.fromEntries(FEATURES.map(f=>[f[0],true]));
+  const ana = {id:'i1',code:'NU-7Q4K',candidato:'Ana Souza',vaga:'Analista de RH Pleno',descricao:'Recrutamento e seleção ponta a ponta para vagas operacionais e administrativas, interface com gestores, indicadores de R&S.',curriculo:'5 anos em R&S. 3 anos em indústria de alimentos. Graduação em Psicologia. Pós em Gestão de Pessoas.',competencias:JSON.parse(JSON.stringify(DEFAULT_COMPS)).map(c=>({...c,status:'pendente',nota:0})),features:{...allOn},cv:null,status:'agendada',consent:null,transcript:[],marks:[],indicios:[],parecer:'',devolutiva:'',pares:[],createdAt:now-3600e3,duracao:0,asked:[]};
+  const bruno = {id:'i2',code:'NU-3H8M',candidato:'Bruno Lima',vaga:'Analista de RH Pleno',descricao:ana.descricao,curriculo:'4 anos em R&S em varejo.',competencias:DEFAULT_COMPS.map((c,i)=>{const n=['tem','melhorar','melhorar','tem','tem'][i];return {nome:c.nome,perguntas:c.perguntas,status:'ok',nivel:n,sug:{nivel:n,justificativa:['Comunica-se com clareza e objetividade.','Cita conflitos de forma genérica, sem detalhar a própria ação.','Menciona resultados, mas sem números.','Descreve um método claro de priorização.','Já lidera uma equipe de dois assistentes.'][i],evidencia:''}}}),features:{...allOn},cv:null,status:'concluida',consent:'full',transcript:[{t:5,who:'C',text:'Trabalho com recrutamento há quatro anos, principalmente no varejo.'},{t:40,who:'C',text:'Lidero uma equipe de dois assistentes há um ano.'}],marks:[{t:40,label:'Exemplo forte'}],indicios:[{t:12,emo:'alegria',v:.7,micro:false,inc:false},{t:55,emo:'surpresa',v:.5,micro:true,inc:false}],parecer:'### Resumo\nBruno demonstra boa experiência em varejo e liderança inicial de equipe.\n### Pontos a aprofundar\n- Gestão de conflitos com gestores\n- Indicadores de resultado',devolutiva:'',pares:[{autor:'Gestora da área',texto:'Gostei da experiência com volume alto de vagas.'}],createdAt:now-86400e3,duracao:1900,asked:[]};
+  bruno.secoes={s_formacao:'O candidato atua há quatro anos com recrutamento e seleção no varejo, com experiência em processos de alto volume.',s_perfil:'Durante o processo de avaliação, o candidato demonstrou boa comunicação e organização, com método claro de priorização. No entanto, ao abordar conflitos com gestores, apresentou respostas genéricas, sem detalhar a própria atuação.',s_fortes:'Comunicação, organização e experiência com alto volume de vagas.',s_desenv:'Gestão de conflitos e apresentação de resultados com indicadores.',s_conclusao:'O candidato apresenta potencial para a função. Recomenda-se um plano de desenvolvimento voltado à gestão de conflitos e à mensuração de resultados.'}; bruno.parecerFinal='Aprovado com ressalvas';
+  const s = {templates:[defaultTemplate()],interviews:[ana,bruno],consents:[{id:'c1',iid:'i2',code:'NU-3H8M',candidato:'Bruno Lima',choice:'full',at:new Date(now-86400e3).toISOString(),versao:CONSENT_VERSION}],settings:{empresa:'Sua Empresa',contato:'rh@suaempresa.com.br',retencao:90}};
+  return s;
+}
+function load(){try{const r=localStorage.getItem('nuance_v1');if(!r)return null;const s=JSON.parse(r);
+  if(!s.templates||!s.templates.length) s.templates=[defaultTemplate()];
+  s.interviews.forEach(i=>i.competencias.forEach(c=>{if(c.nivel===undefined){c.nivel=c.nota>=4?'tem':c.nota===3?'melhorar':c.nota>0?'nao':null;c.sug=c.sug||null}}));return s}catch(e){return null}}
+function save(){try{localStorage.setItem('nuance_v1',JSON.stringify(S))}catch(e){}}
+function cur(){return S.interviews.find(i=>i.id===curId)}
+
+/* ---------- utils ---------- */
+const $ = s=>document.querySelector(s);
+const app = $('#app');
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function initials(n){return (n||'?').split(' ').filter(Boolean).slice(0,2).map(p=>p[0]).join('').toUpperCase()}
+function fmt(t){t=Math.max(0,Math.round(t));return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0')}
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2400)}
+function genCode(){const a='ABCDEFGHJKMNPQRSTUVWXYZ23456789';let c='NU-';for(let i=0;i<4;i++)c+=a[Math.floor(Math.random()*a.length)];return c}
+function copy(text){
+  const done=()=>toast('Copiado');
+  try{navigator.clipboard.writeText(text).then(done).catch(fallback)}catch(e){fallback()}
+  function fallback(){const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done()}catch(e){toast('Selecione e copie o texto')}ta.remove()}
+}
+function md(s){
+  const lines=esc(s).split('\n');let out='',inUl=false;
+  for(const l of lines){
+    let x=l.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+    if(/^\s*[-•*]\s+/.test(l)){if(!inUl){out+='<ul>';inUl=true}out+='<li>'+x.replace(/^\s*[-•*]\s+/,'')+'</li>';continue}
+    if(inUl){out+='</ul>';inUl=false}
+    if(/^#{1,4}\s/.test(l))out+='<h3>'+x.replace(/^#{1,4}\s/,'')+'</h3>';
+    else if(l.trim())out+='<p>'+x+'</p>';
+  }
+  if(inUl)out+='</ul>';return out;
+}
+function modal(html,onMount){$('#modalBody').innerHTML=html;$('#modal').classList.add('on');onMount&&onMount($('#modalBody'))}
+function closeModal(){$('#modal').classList.remove('on')}
+function confirmBox(msg,okLabel,fn){modal(`<h3>${esc(msg)}</h3><div class="row"><span class="spacer"></span><button class="btn ghost" data-m="no">Cancelar</button><button class="btn primary" data-m="ok">${esc(okLabel)}</button></div>`,b=>{b.querySelector('[data-m=no]').onclick=closeModal;b.querySelector('[data-m=ok]').onclick=()=>{closeModal();fn()}})}
+const logoSVG=(id,cls='')=>`<svg viewBox="20 40 525 440" aria-hidden="true" class="${cls}"><defs><clipPath id="${id}"><path class="bob-b" d="M 347 115 C 450 115 533 188 533 280 C 533 310 524 338 504 369 L 532 455 Q 539 474 521 463 L 434 411 C 408 421 375 425 349 425 C 251 425 171 362 171 276 C 171 185 250 115 347 115 Z"/></clipPath></defs><path class="bob-a" d="M 230 47 C 330 47 408 120 408 217 C 408 314 325 390 224 390 C 198 390 171 385 149 375 L 63 433 Q 46 444 51 424 L 73 337 C 42 303 27 260 27 219 C 27 120 114 47 230 47 Z" fill="#2B2B2B"/><path class="bob-b" d="M 347 115 C 450 115 533 188 533 280 C 533 310 524 338 504 369 L 532 455 Q 539 474 521 463 L 434 411 C 408 421 375 425 349 425 C 251 425 171 362 171 276 C 171 185 250 115 347 115 Z" fill="#F4AA91"/><g clip-path="url(#${id})"><path class="bob-a glow" d="M 230 47 C 330 47 408 120 408 217 C 408 314 325 390 224 390 C 198 390 171 385 149 375 L 63 433 Q 46 444 51 424 L 73 337 C 42 303 27 260 27 219 C 27 120 114 47 230 47 Z" fill="#E2603B"/></g></svg>`;
+
+/* ---------- IA (Claude via capacidade sample) ---------- */
+try{ if(window.claude&&claude.use){ claude.use('sample').then(f=>{sampleFn=f;}).catch(()=>{}); } }catch(e){}
+async function ai(prompt,json){
+  if(!sampleFn) throw {code:'unavailable'};
+  if(json) return await sampleFn.json(prompt);
+  const r=await sampleFn(prompt); return r.text;
+}
+function aiErr(e){ if(e&&e.code==='rate_limited') toast('Muitas solicitações. Tente em instantes.'); else if(e&&e.code==='not_granted') toast('IA não autorizada. Usando sugestões padrão.'); else toast('IA indisponível aqui. Usando sugestões padrão.'); }
+
+/* ---------- navegação ---------- */
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-go]'); if(g){go(g.dataset.go,g.dataset.id);return}
+});
+$('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+function go(v,id){
+  if(room&&v!=='sala') stopRoom();
+  view=v; if(id) curId=id;
+  document.querySelectorAll('nav.main button').forEach(b=>b.classList.toggle('on',b.dataset.go===v));
+  window.scrollTo(0,0);
+  ({home:vHome,nova:vNova,convite:vConvite,candidato:vCandidato,aceite:vAceite,candsala:vCandSala,sala:vSala,parecer:vParecer,comparar:vComparar,lgpd:vLgpd,modelos:vModelos}[v]||vHome)();
+}
+
+/* ---------- splash ---------- */
+(function(){
+  const wm=$('.wordmark'); 'nuance'.split('').forEach((ch,i)=>{const s=document.createElement('span');s.textContent=ch;s.style.animationDelay=(1.05+i*.07)+'s';wm.appendChild(s)});
+  const sp=$('#splash'); const hide=()=>sp.classList.add('hide');
+  sp.addEventListener('click',hide); setTimeout(hide,3000);
+})();
+
+/* ---------- HOME ---------- */
+function vHome(){
+  const ivs=[...S.interviews].sort((a,b)=>b.createdAt-a.createdAt);
+  const stPill=i=>i.status==='concluida'?'<span class="pill ok">Concluída</span>':i.status==='em_andamento'?'<span class="pill terra"><span class="dot rec"></span>Ao vivo</span>':'<span class="pill gray">Agendada</span>';
+  app.innerHTML=`
+  <section class="hero">
+    <div class="stack" style="gap:16px">
+      <span class="pill terra" style="align-self:flex-start">Protótipo</span>
+      <h1>Perceba o que está entre as falas.</h1>
+      <p class="muted" style="font-size:17px">Videoentrevistas com transcrição, roteiro por competência, copiloto de perguntas e indícios de emoção baseados em Paul Ekman, sempre com o consentimento do candidato.</p>
+      <div class="grid2" style="margin-top:8px">
+        <button class="card role-card" data-go="nova"><span class="role-ic" style="background:var(--salmon-l);color:var(--terra-d)">${icon('plus')}</span><span><h3>Sou recrutador</h3><span class="small muted">Configurar uma nova entrevista</span></span></button>
+        <button class="card role-card" data-go="candidato"><span class="role-ic" style="background:#F0EBE5">${icon('key')}</span><span><h3>Sou candidato</h3><span class="small muted">Entrar com o código recebido</span></span></button>
+      </div>
+    </div>
+    <div class="hero-logo">${logoSVG('heroClip')}</div>
+  </section>
+  <section class="card">
+    <div class="row" style="margin-bottom:6px"><h2>Suas entrevistas</h2><span class="spacer"></span><button class="btn sm primary" data-go="nova">${icon('plus')} Nova</button></div>
+    ${ivs.length?ivs.map(i=>`<div class="list-item"><span class="avatar">${initials(i.candidato)}</span><div style="flex:1;min-width:160px"><b>${esc(i.candidato)}</b><div class="small muted">${esc(i.vaga)} · código ${esc(i.code)}</div></div>${stPill(i)}${i.consent?`<span class="pill ${i.consent==='full'?'ok':'blue'}">${i.consent==='full'?'Análise autorizada':'Só gravação'}</span>`:''}
+      <div class="row">${i.status==='concluida'?`<button class="btn sm" data-go="parecer" data-id="${i.id}">Ver parecer</button>`:`<button class="btn sm" data-go="convite" data-id="${i.id}">Convite</button><button class="btn sm dark" data-go="sala" data-id="${i.id}">Abrir sala</button>`}</div></div>`).join(''):'<p class="muted">Crie sua primeira entrevista.</p>'}
+  </section>`;
+}
+function icon(n){const p={plus:'M12 5v14M5 12h14',key:'M15 7a3 3 0 1 1-3 3M12 10l-7 7v3h3l1-1v-2h2v-2h2l1-1',cam:'M15 10l5-3v10l-5-3M3 7h12v10H3z',play:'M7 5l12 7-12 7z',pause:'M7 5h4v14H7zM13 5h4v14h-4z',spark:'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z',copy:'M9 9h11v11H9zM5 15V4h11',check:'M5 12l5 5 9-10',stop:'M6 6h12v12H6z',next:'M5 5l9 7-9 7zM17 5v14'}[n]||'';return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${p}"/></svg>`}
+
+/* ---------- NOVA ENTREVISTA ---------- */
+let draft=null;
+function vNova(){
+  if(!draft) draft={candidato:'',vaga:'',descricao:'',curriculo:'',competencias:JSON.parse(JSON.stringify(DEFAULT_COMPS)),features:Object.fromEntries(FEATURES.map(f=>[f[0],true])),cv:null};
+  const grp=(k,t)=>`<div class="card"><h3 style="margin-bottom:6px">${t}</h3>${FEATURES.filter(f=>f[3]===k).map(f=>`<div class="tg"><div><b style="font-size:14px">${f[1]}</b><div class="xs muted">${f[2]}</div></div><label class="switch"><input type="checkbox" data-ft="${f[0]}" ${draft.features[f[0]]?'checked':''} aria-label="${f[1]}"><span></span></label></div>`).join('')}</div>`;
+  app.innerHTML=`
+  <div class="row" style="margin-bottom:16px"><h1>Nova entrevista</h1></div>
+  <div class="grid2" style="align-items:start">
+    <div class="stack">
+      <div class="card stack">
+        <div><label class="f" for="fCand">Candidato</label><input id="fCand" type="text" placeholder="Ana Souza" value="${esc(draft.candidato)}"></div>
+        <div><label class="f" for="fVaga">Vaga</label><input id="fVaga" type="text" placeholder="Analista de RH Pleno" value="${esc(draft.vaga)}"></div>
+        <div><label class="f" for="fDesc">Descrição da vaga</label><textarea id="fDesc" placeholder="Cole aqui a descrição da vaga">${esc(draft.descricao)}</textarea></div>
+        <div class="row"><button class="btn sm" id="bRoteiro">${icon('spark')} Gerar roteiro com IA</button><span class="xs muted">Monta competências e perguntas a partir da vaga</span></div>
+      </div>
+      <div class="card stack">
+        <div class="row"><h3>Roteiro por competência</h3><span class="spacer"></span><button class="btn sm ghost" id="bAddComp">+ Competência</button></div>
+        <div id="comps"></div>
+      </div>
+      <div class="card stack">
+        <div><label class="f" for="fCv">Currículo</label><textarea id="fCv" placeholder="Cole o texto do currículo ou envie um arquivo .txt">${esc(draft.curriculo)}</textarea></div>
+        <div class="row"><label class="btn sm ghost" style="cursor:pointer">Enviar .txt<input type="file" accept=".txt,text/plain" id="fCvFile" class="sr"></label><button class="btn sm" id="bCv">${icon('spark')} Analisar currículo</button></div>
+        <div id="cvOut"></div>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="card"><label class="f" for="fTpl">Modelo de parecer</label><select id="fTpl">${S.templates.map(t=>`<option value="${t.id}" ${(draft.templateId||(S.templates.find(x=>x.padrao)||{}).id)===t.id?'selected':''}>${esc(t.nome)}${t.padrao?' (padrão)':''}</option>`).join('')}</select><p class="xs muted" style="margin-top:6px">A IA preenche os tópicos desse modelo durante a entrevista. <button class="btn sm ghost" data-go="modelos" style="margin-left:4px">Gerenciar modelos</button></p></div>
+      <p class="small muted">Escolha o que usar nesta entrevista. O que estiver desligado não aparece na sala.</p>
+      ${grp('antes','Antes')}${grp('durante','Durante')}${grp('depois','Depois')}
+      <button class="btn primary" id="bCriar" style="width:100%">Criar entrevista e gerar código</button>
+    </div>
+  </div>`;
+  const sync=()=>{draft.candidato=$('#fCand').value;draft.vaga=$('#fVaga').value;draft.descricao=$('#fDesc').value;draft.curriculo=$('#fCv').value};
+  ['#fCand','#fVaga','#fDesc','#fCv'].forEach(s=>$(s).addEventListener('input',sync));
+  $('#fTpl').addEventListener('change',e=>draft.templateId=e.target.value);
+  app.querySelectorAll('[data-ft]').forEach(c=>c.addEventListener('change',()=>{draft.features[c.dataset.ft]=c.checked}));
+  renderComps(); renderCv();
+  $('#fCvFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{$('#fCv').value=t;sync();toast('Currículo carregado')})});
+  $('#bAddComp').onclick=()=>{draft.competencias.push({nome:'Nova competência',perguntas:['']});renderComps()};
+  $('#bRoteiro').onclick=async e=>{
+    sync(); const b=e.currentTarget; if(!draft.vaga&&!draft.descricao){toast('Preencha a vaga ou a descrição');return}
+    b.innerHTML='<span class="spin"></span> Gerando…';b.disabled=true;
+    try{
+      const r=await ai(`Você é especialista em recrutamento por competências no Brasil. Para a vaga "${draft.vaga}" com a descrição abaixo, defina de 4 a 6 competências essenciais e, para cada uma, 3 perguntas comportamentais (método STAR), em português do Brasil, curtas e abertas.\nDescrição: ${draft.descricao}\nResponda só em JSON: {"competencias":[{"nome":"...","perguntas":["...","...","..."]}]}`,true);
+      if(r&&Array.isArray(r.competencias)){draft.competencias=r.competencias.map(c=>({nome:String(c.nome),perguntas:(c.perguntas||[]).map(String)}));renderComps();toast('Roteiro gerado')}
+    }catch(err){aiErr(err)}
+    b.innerHTML=icon('spark')+' Gerar roteiro com IA';b.disabled=false;
+  };
+  $('#bCv').onclick=async e=>{
+    sync(); const b=e.currentTarget; if(!draft.curriculo.trim()){toast('Cole o currículo primeiro');return}
+    b.innerHTML='<span class="spin"></span> Analisando…';b.disabled=true;
+    try{
+      const r=await ai(`Analise o currículo abaixo para a vaga "${draft.vaga}" (${draft.descricao}). Em português do Brasil, aponte lacunas e pontos a confirmar na entrevista. Não julgue características pessoais (idade, gênero, origem etc.).\nCurrículo: ${draft.curriculo}\nResponda só em JSON: {"resumo":"1 frase","lacunas":["..."],"confirmar":["..."]}`,true);
+      draft.cv=r; renderCv();
+    }catch(err){aiErr(err); draft.cv={resumo:'Análise automática indisponível neste ambiente.',lacunas:['Verifique períodos sem experiência declarada'],confirmar:['Confirme resultados numéricos citados','Confirme escopo das responsabilidades']}; renderCv();}
+    b.innerHTML=icon('spark')+' Analisar currículo';b.disabled=false;
+  };
+  $('#bCriar').onclick=()=>{
+    sync(); if(!draft.candidato.trim()||!draft.vaga.trim()){toast('Preencha candidato e vaga');return}
+    const iv={id:'i'+Date.now(),code:genCode(),candidato:draft.candidato.trim(),vaga:draft.vaga.trim(),descricao:draft.descricao,curriculo:draft.curriculo,competencias:draft.competencias.filter(c=>c.nome.trim()).map(c=>({nome:c.nome,perguntas:c.perguntas.filter(q=>q.trim()),status:'pendente',nivel:null,sug:null})),features:{...draft.features},cv:draft.cv,templateId:draft.templateId||(S.templates.find(x=>x.padrao)||S.templates[0]).id,secoes:{},parecerFinal:'',status:'agendada',consent:null,transcript:[],marks:[],indicios:[],parecer:'',devolutiva:'',pares:[],createdAt:Date.now(),duracao:0,asked:[]};
+    S.interviews.push(iv); save(); draft=null; go('convite',iv.id);
+  };
+}
+function renderComps(){
+  const box=$('#comps'); if(!box)return;
+  box.innerHTML=draft.competencias.map((c,ci)=>`<div style="border-top:1px solid var(--line);padding-top:10px">
+    <div class="row"><input type="text" value="${esc(c.nome)}" data-cn="${ci}" aria-label="Nome da competência" style="font-weight:700;flex:1"><button class="btn sm ghost" data-crm="${ci}" aria-label="Remover competência">Remover</button></div>
+    ${c.perguntas.map((q,qi)=>`<input type="text" value="${esc(q)}" data-cq="${ci}:${qi}" aria-label="Pergunta" style="margin-top:6px;font-size:14px">`).join('')}
+    <button class="btn sm ghost" data-cqa="${ci}" style="margin-top:6px">+ Pergunta</button></div>`).join('');
+  box.querySelectorAll('[data-cn]').forEach(i=>i.oninput=()=>draft.competencias[+i.dataset.cn].nome=i.value);
+  box.querySelectorAll('[data-cq]').forEach(i=>i.oninput=()=>{const[a,b]=i.dataset.cq.split(':');draft.competencias[+a].perguntas[+b]=i.value});
+  box.querySelectorAll('[data-crm]').forEach(b=>b.onclick=()=>{draft.competencias.splice(+b.dataset.crm,1);renderComps()});
+  box.querySelectorAll('[data-cqa]').forEach(b=>b.onclick=()=>{draft.competencias[+b.dataset.cqa].perguntas.push('');renderComps()});
+}
+function renderCv(){
+  const o=$('#cvOut'); if(!o)return; const c=draft.cv; if(!c){o.innerHTML='';return}
+  o.innerHTML=`<div class="msgbox" style="white-space:normal"><b>${esc(c.resumo||'')}</b>${(c.lacunas||[]).length?`<div class="small" style="margin-top:8px"><b>Lacunas</b><ul style="margin:4px 0;padding-left:18px">${c.lacunas.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}${(c.confirmar||[]).length?`<div class="small"><b>Confirmar na entrevista</b><ul style="margin:4px 0;padding-left:18px">${c.confirmar.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}</div>`;
+}
+
+/* ---------- CONVITE ---------- */
+function vConvite(){
+  const i=cur(); if(!i)return go('home');
+  const msg=`Olá, ${i.candidato.split(' ')[0]}! Tudo bem?\n\nSua entrevista para a vaga de ${i.vaga} na ${S.settings.empresa} acontecerá pelo Nuance.\n\nNo horário combinado, acesse o Nuance, escolha "Sou candidato" e informe o código:\n\n${i.code}\n\nAntes de entrar, você verá como a entrevista será registrada e poderá escolher o que autoriza.\n\nAté breve!`;
+  app.innerHTML=`<div class="row" style="margin-bottom:16px"><h1>Entrevista criada</h1></div>
+  <div class="grid2" style="align-items:start">
+    <div class="card stack" style="align-items:flex-start">
+      <span class="small muted">Código da sala de ${esc(i.candidato)}</span>
+      <div class="code">${esc(i.code)}</div>
+      <div class="row"><button class="btn sm" id="cCode">${icon('copy')} Copiar código</button></div>
+      <hr class="s" style="width:100%">
+      <div class="row" style="width:100%"><button class="btn dark" data-go="sala" data-id="${i.id}">Abrir sala do recrutador</button><button class="btn ghost" data-go="candidato">Testar como candidato</button></div>
+    </div>
+    ${i.features.convite?`<div class="card stack"><h3>Mensagem de convite</h3><div class="msgbox">${esc(msg)}</div><div class="row"><button class="btn sm primary" id="cMsg">${icon('copy')} Copiar mensagem</button><span class="xs muted">Cole no e-mail ou WhatsApp</span></div></div>`:''}
+  </div>`;
+  $('#cCode').onclick=()=>copy(i.code);
+  const m=$('#cMsg'); if(m) m.onclick=()=>copy(msg);
+}
+
+/* ---------- CANDIDATO ---------- */
+function vCandidato(){
+  app.innerHTML=`<div class="card stack" style="max-width:440px;margin:30px auto;text-align:center;align-items:center">
+    <div style="width:90px">${logoSVG('cdClip')}</div>
+    <h2>Entrar na entrevista</h2><p class="muted small">Digite o código que você recebeu do recrutador.</p>
+    <label class="sr" for="cCodeIn">Código</label>
+    <input id="cCodeIn" type="text" placeholder="NU-7Q4K" style="text-align:center;font-size:22px;font-weight:800;letter-spacing:3px;text-transform:uppercase" autocomplete="off">
+    <p id="cErr" class="small" style="color:#A3301E;min-height:20px"></p>
+    <button class="btn primary" id="cGo" style="width:100%">Continuar</button>
+    <p class="xs muted">Teste com o código NU-7Q4K</p>
+  </div>`;
+  const inp=$('#cCodeIn'); inp.focus();
+  inp.addEventListener('input',()=>$('#cErr').textContent='');
+  const goNext=()=>{
+    let v=inp.value.trim().toUpperCase().replace(/\s/g,''); if(v&&!v.startsWith('NU-'))v='NU-'+v.replace(/^NU/,'');
+    if(!v){$('#cErr').textContent='Digite o código.';return}
+    const i=S.interviews.find(x=>x.code===v&&x.status!=='concluida');
+    if(!i){$('#cErr').textContent='Código não encontrado. Confira com o recrutador.';return}
+    curId=i.id; go('aceite');
+  };
+  $('#cGo').onclick=goNext; inp.addEventListener('keydown',e=>{if(e.key==='Enter')goNext()});
+}
+function vAceite(){
+  const i=cur(); if(!i)return go('candidato'); const st=S.settings;
+  const analise=i.features.ekman;
+  app.innerHTML=`<div class="card consent">
+    <h2>Antes de começar sua entrevista</h2>
+    <p style="margin-top:10px">Olá, ${esc(i.candidato.split(' ')[0])}! Esta entrevista faz parte do processo seletivo conduzido por <b>${esc(st.empresa)}</b> para a vaga de <b>${esc(i.vaga)}</b>. Para tornar o processo mais organizado e justo, o recrutador usa uma plataforma de apoio.</p>
+    ${i.features.gravacao?`<h3>Gravação e transcrição</h3><p>A entrevista será gravada e transcrita, para que o recrutador possa revisar suas respostas com atenção depois.</p>`:''}
+    ${analise?`<div class="hl"><h3 style="margin-top:0">Análise de expressões</h3><p>Com sua autorização, a plataforma interpreta expressões faciais e linguagem corporal com base nos estudos de Paul Ekman sobre emoções. Essa análise gera apenas <i>indícios</i> para ajudar o recrutador a entender melhor a conversa e a fazer boas perguntas. <b>Ela não aprova nem reprova ninguém</b>: a decisão é sempre do recrutador, com base no conjunto do processo. Se você não autorizar, a entrevista acontece normalmente, sem nenhum prejuízo para você.</p></div>`:''}
+    <h3>Seus dados</h3><p>As gravações e análises ficam guardadas por até ${esc(st.retencao)} dias e são acessadas apenas pela equipe de recrutamento. Você pode pedir uma cópia ou a exclusão a qualquer momento pelo e-mail ${esc(st.contato)}. Tratamento conforme a LGPD (Lei 13.709/2018).</p>
+    <div class="stack" style="margin-top:20px">
+      ${analise?`<button class="btn primary" id="aFull">${icon('check')} Autorizo a análise e quero entrar</button><button class="btn" id="aBasic">Entrar sem a análise de expressões</button>`:`<button class="btn primary" id="aBasic">${icon('check')} Entendi e quero entrar</button>`}
+    </div>
+    <p class="xs muted" style="margin-top:12px">Versão do termo ${CONSENT_VERSION}. Sua escolha fica registrada com data e hora.</p>
+  </div>`;
+  const rec=choice=>{i.consent=choice;S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice,at:new Date().toISOString(),versao:CONSENT_VERSION});save();go('candsala')};
+  const f=$('#aFull'); if(f)f.onclick=()=>rec('full'); $('#aBasic').onclick=()=>rec('basic');
+}
+function vCandSala(){
+  const i=cur(); if(!i)return go('home');
+  app.innerHTML=`<div style="max-width:760px;margin:0 auto" class="stack">
+    <div class="video" style="aspect-ratio:16/9"><div class="tagtl"><span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Gravando</span>${i.consent==='full'?'<span class="pill terra">Análise autorizada</span>':''}</div>
+      <div style="color:#bbb;text-align:center"><div class="spin" style="width:28px;height:28px;margin-bottom:10px"></div><div>Aguardando o recrutador entrar…</div></div><div class="self">Você</div></div>
+    <div class="card row"><div style="flex:1"><b>${esc(i.vaga)}</b><div class="small muted">${esc(S.settings.empresa)} · código ${esc(i.code)}</div></div><button class="btn danger sm" data-go="home">Sair</button></div>
+    <div class="card small muted">Protótipo: esta é a tela que o candidato vê, uma videochamada comum. <button class="btn sm dark" data-go="sala" data-id="${i.id}" style="margin-left:6px">Ver como recrutador</button></div>
+  </div>`;
+}
+
+/* ---------- SALA ---------- */
+function vSala(){
+  const i=cur(); if(!i)return go('home');
+  const F=i.features; const ekmanOn=F.ekman&&i.consent==='full';
+  if(i.status==='agendada'){i.status='em_andamento';save()}
+  if(room){clearInterval(room.tick);stopCam()}
+  room={t0:Date.now(),elapsed:i.duracao||0,running:false,mode:'demo',demoIdx:0,demoT:0,tick:null,block:0,blockT0:0,levels:Object.fromEntries(Object.keys(EMO).map(k=>[k,0])),speaker:'C',stream:null,recog:null,lm:null,raf:null,active:{},lastEv:{},suggestion:null,sugLoading:false,liveOn:false,liveCount:0,liveLoading:false};
+  const blocks=i.competencias.length||1, blockTarget=Math.round(40*60/blocks);
+  app.innerHTML=`
+  <div class="room-top">
+    <div style="flex:1;min-width:200px"><h2>${esc(i.candidato)}</h2><div class="small muted">${esc(i.vaga)} · ${esc(i.code)}</div></div>
+    ${i.consent?`<span class="pill ${i.consent==='full'?'ok':'blue'}">${i.consent==='full'?'Análise autorizada':'Análise não autorizada'}</span>`:'<span class="pill warn">Aguardando aceite</span>'}
+    ${F.cronometro&&i.competencias.length?`<span class="pill gray">Bloco <span id="blkName"></span> · <span class="timer" id="blkTime">00:00</span> / ${fmt(blockTarget)}</span><button class="btn sm ghost" id="bNextBlk">${icon('next')} Próximo bloco</button>`:''}
+    <span class="pill gray">Total <span class="timer" id="totTime">00:00</span></span>
+    <button class="btn sm primary" id="bEnd">${icon('stop')} Encerrar</button>
+  </div>
+  ${!i.consent?`<div class="card row" style="margin-bottom:14px;background:var(--warn-l);border-color:#F0D9A8"><div style="flex:1"><b>O candidato ainda não aceitou o termo.</b><div class="small">No protótipo, você pode simular a escolha dele.</div></div><button class="btn sm" id="simFull">Simular: autorizou</button><button class="btn sm" id="simBasic">Simular: só gravação</button></div>`:''}
+  <div class="room" id="roomGrid">
+    <div class="stack">
+      <div class="video" id="vid">
+        <div class="tagtl">${F.gravacao?'<span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Gravando</span>':''}<span class="pill" style="background:rgba(255,255,255,.15);color:#fff" id="modeTag">Modo demonstração</span></div>
+        <svg class="demo-face breathe" id="demoFace" viewBox="0 0 200 200" aria-label="Candidata (demonstração)" role="img"><circle cx="100" cy="78" r="40" fill="#8E7F74"/><path d="M30 200c6-50 36-74 70-74s64 24 70 74z" fill="#6E625A"/><path id="mouth" d="M84 92 Q100 100 116 92" stroke="#3A322D" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="86" cy="74" r="3.5" fill="#3A322D"/><circle cx="114" cy="74" r="3.5" fill="#3A322D"/><path id="browL" d="M78 64 L92 62" stroke="#3A322D" stroke-width="3" stroke-linecap="round"/><path id="browR" d="M108 62 L122 64" stroke="#3A322D" stroke-width="3" stroke-linecap="round"/></svg>
+        <video id="cam" playsinline muted style="display:none;position:absolute;inset:0"></video>
+        <div class="caption" id="cap"></div>
+        <div class="self">Você</div>
+      </div>
+      <div class="row">
+        <button class="btn sm dark" id="bPlay">${icon('play')} Iniciar demonstração</button>
+        <button class="btn sm" id="bCam">${icon('cam')} Usar minha câmera</button>
+        <button class="btn sm ghost" id="bWide">Ampliar vídeo</button>
+        <span class="xs muted" id="camMsg"></span>
+      </div>
+      ${F.gravacao?`<div class="panel"><div class="panel-h"><h3>Transcrição ao vivo</h3><span class="spacer"></span><button class="btn sm ghost" id="bSpk" style="display:none">Falando: candidato</button></div><div class="transcript" id="tr" aria-live="polite"></div></div>`:''}
+      ${F.marcacao?`<div class="panel"><div class="panel-h"><h3>Marcação rápida</h3><span class="xs muted">fica ligada ao momento da conversa</span></div><div class="marks">${MARKS.map(m=>`<button class="btn sm ghost" data-mk="${esc(m)}">+ ${esc(m)}</button>`).join('')}<button class="btn sm ghost" id="bNote">+ Nota</button></div><div id="mkList" class="small muted" style="margin-top:8px"></div></div>`:''}
+    </div>
+    <div class="stack">
+      ${F.sugestoes?`<div class="ask"><div class="row"><b class="small">Pergunte agora</b><span class="spacer"></span><button class="btn sm" id="bSug" style="background:#fff;border-color:#B8CDE2">${icon('spark')} Nova sugestão</button></div><div class="q" id="sugQ">Comece pela abertura: "${esc((i.competencias[0]?.perguntas||[])[0]||'Conte um pouco da sua trajetória.')}"</div><div class="small" id="sugWhy" style="opacity:.85"></div></div>`:''}
+      <div class="tabs" role="tablist" aria-label="Painéis">
+        ${F.ekman?'<button role="tab" data-tab="ind">Indícios</button>':''}
+        ${(F.checklist||F.roteiro||(i.cv&&F.curriculo))?'<button role="tab" data-tab="rot">Roteiro</button>':''}
+        ${F.parecer?'<button role="tab" data-tab="par">Parecer</button>':''}
+      </div>
+      <div class="tabp" data-tabp="ind">
+      ${F.ekman?(ekmanOn?`<div class="panel"><div class="panel-h"><h3>Indícios Ekman</h3><span class="spacer"></span><span class="xs muted">ao vivo</span></div>
+        <div class="bars" id="bars">${Object.entries(EMO).map(([k,e])=>`<span>${e.nome}</span><span class="bar"><i id="b_${k}" style="width:0;background:${e.cor}"></i></span><span class="xs muted" id="p_${k}">0%</span>`).join('')}</div>
+        <hr class="s" style="margin:12px 0 4px"><div id="inds"><p class="small muted" style="padding:8px 0">Os indícios aparecem aqui conforme a conversa acontece.</p></div>
+        <p class="disclaimer">Indícios são hipóteses para explorar com perguntas, nunca conclusões sobre a pessoa.</p></div>`
+        :`<div class="panel"><div class="panel-h"><h3>Indícios Ekman</h3></div><p class="small muted">${i.consent==='basic'?'O candidato não autorizou a análise de expressões. A entrevista segue normalmente, sem esse recurso.':'Disponível após o candidato autorizar no termo de entrada.'}</p></div>`):''}
+      </div>
+      <div class="tabp" data-tabp="rot">
+      ${F.checklist?`<div class="panel"><div class="panel-h"><h3>Competências</h3><span class="spacer"></span><span class="xs muted">toque para mudar</span></div><div id="cl"></div></div>`:''}
+      ${F.roteiro?`<div class="panel"><div class="panel-h"><h3>Roteiro</h3><span class="spacer"></span><span class="xs muted" id="rtName"></span></div><div id="rt"></div></div>`:''}
+      ${i.cv&&F.curriculo?`<div class="panel"><div class="panel-h"><h3>Pontos do currículo</h3></div><ul class="small" style="margin:0;padding-left:18px">${[...(i.cv.confirmar||[]),...(i.cv.lacunas||[])].map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
+      </div>
+      <div class="tabp" data-tabp="par">
+      ${F.parecer?`<div class="panel"><div class="panel-h"><h3>Parecer ao vivo</h3><span class="spacer"></span><span class="xs muted" id="liveSt"></span></div>
+        <p class="xs muted" style="margin-bottom:8px">Modelo: ${esc(tplOf(i).nome)}. A IA preenche cada tópico conforme a conversa avança.</p>
+        <div class="row" style="margin-bottom:8px"><button class="btn sm dark" id="bLive">${icon('spark')} Ativar preenchimento ao vivo</button><button class="btn sm ghost" id="bLiveNow">Atualizar agora</button></div>
+        <div id="liveBox" style="max-height:360px;overflow:auto"></div></div>`:''}
+      </div>
+    </div>
+  </div>`;
+  if(!i.consent){$('#simFull').onclick=()=>{i.consent='full';S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice:'full',at:new Date().toISOString(),versao:CONSENT_VERSION,simulado:true});save();vSala()};$('#simBasic').onclick=()=>{i.consent='basic';S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice:'basic',at:new Date().toISOString(),versao:CONSENT_VERSION,simulado:true});save();vSala()}}
+  renderTranscript(); renderInds(); renderChecklist(); renderRoteiro(); renderMarks(); updateBlock(); renderLive();
+  const tabBtns=[...app.querySelectorAll('[data-tab]')];
+  const showTab=k=>{tabBtns.forEach(b=>{const on=b.dataset.tab===k;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);if(on){const bd=b.querySelector('.badge');if(bd)bd.remove()}});app.querySelectorAll('[data-tabp]').forEach(p=>p.classList.toggle('on',p.dataset.tabp===k));room.tab=k};
+  tabBtns.forEach(b=>b.onclick=()=>showTab(b.dataset.tab)); if(tabBtns[0]) showTab(tabBtns[0].dataset.tab);
+  room.flagTab=k=>{if(room.tab===k)return;const b=tabBtns.find(x=>x.dataset.tab===k);if(b&&!b.querySelector('.badge')){const d=document.createElement('span');d.className='badge';d.setAttribute('aria-label','novidade');b.appendChild(d)}};
+  const bw=$('#bWide'); if(bw) bw.onclick=()=>{const g=$('#roomGrid');const w=g.classList.toggle('wide');bw.textContent=w?'Vídeo com painéis ao lado':'Ampliar vídeo'};
+  const bl=$('#bLive'); if(bl) bl.onclick=()=>{room.liveOn=!room.liveOn;bl.innerHTML=room.liveOn?icon('pause')+' Pausar preenchimento':icon('spark')+' Ativar preenchimento ao vivo';if(room.liveOn)liveUpdate(true)};
+  const bln=$('#bLiveNow'); if(bln) bln.onclick=()=>liveUpdate(true);
+  $('#bPlay').onclick=toggleDemo;
+  $('#bCam').onclick=startCam;
+  $('#bEnd').onclick=()=>confirmBox('Encerrar a entrevista?','Encerrar',endInterview);
+  const nb=$('#bNextBlk'); if(nb) nb.onclick=()=>{room.block=Math.min(room.block+1,i.competencias.length-1);room.blockT0=room.elapsed;updateBlock();renderRoteiro()};
+  const sg=$('#bSug'); if(sg) sg.onclick=suggest;
+  app.querySelectorAll('[data-mk]').forEach(b=>b.onclick=()=>addMark(b.dataset.mk));
+  const bn=$('#bNote'); if(bn) bn.onclick=()=>modal(`<h3>Nota rápida</h3><label class="sr" for="noteIn">Nota</label><textarea id="noteIn" placeholder="Ex.: confirmar datas do último emprego"></textarea><p id="noteErr" class="small" style="color:#A3301E;min-height:18px"></p><div class="row"><span class="spacer"></span><button class="btn ghost" data-m="no">Cancelar</button><button class="btn primary" data-m="ok">Salvar</button></div>`,b=>{const ta=b.querySelector('#noteIn');ta.focus();ta.oninput=()=>b.querySelector('#noteErr').textContent='';b.querySelector('[data-m=no]').onclick=closeModal;b.querySelector('[data-m=ok]').onclick=()=>{if(!ta.value.trim()){b.querySelector('#noteErr').textContent='Escreva a nota primeiro.';return}addMark('Nota',ta.value.trim());closeModal()}});
+  const spk=$('#bSpk'); if(spk) spk.onclick=()=>{room.speaker=room.speaker==='C'?'R':'C';spk.textContent='Falando: '+(room.speaker==='C'?'candidato':'você')};
+  room.tick=setInterval(tick,250);
+}
+function now(){return room?room.elapsed:0}
+function tick(){
+  if(!room)return; const i=cur(); if(!i)return;
+  if(room.running){room.elapsed+=.25;
+    if(room.mode==='demo') demoStep();
+  }
+  // decaimento dos níveis no modo demo
+  if(room.mode==='demo'){for(const k in room.levels){room.levels[k]*=.9}; drawBars(); animateFace()}
+  const tt=$('#totTime'); if(tt) tt.textContent=fmt(room.elapsed);
+  const bt=$('#blkTime'); if(bt) bt.textContent=fmt(room.elapsed-room.blockT0);
+}
+function toggleDemo(){
+  if(room.mode!=='demo'){toast('Desligue a câmera para usar a demonstração');return}
+  room.running=!room.running;
+  $('#bPlay').innerHTML=room.running?icon('pause')+' Pausar':icon('play')+' Continuar demonstração';
+}
+function demoStep(){
+  const i=cur();
+  while(room.demoIdx<DEMO.length&&DEMO[room.demoIdx].t<=room.elapsed){
+    const ev=DEMO[room.demoIdx++];
+    if(ev.end){room.running=false;$('#bPlay').innerHTML=icon('play')+' Demonstração concluída';$('#cap').textContent='';toast('Demonstração concluída. Encerre para ver o parecer.');continue}
+    if(ev.text){addLine(ev.who,ev.text); $('#cap').textContent=(ev.who==='C'?'Ana: ':'Você: ')+ev.text;
+      if(ev.who==='R'){markAskedByText(ev.text)}}
+    if(ev.comp){const c=i.competencias.find(x=>x.nome===ev.comp[0]); if(c&&c.status!=='ok'){c.status=ev.comp[1]==='ok'?'ok':'andamento';renderChecklist();save()}}
+    if(ev.emo&&i.features.ekman&&i.consent==='full'){room.levels[ev.emo]=Math.max(room.levels[ev.emo],ev.v);addIndicio(ev.emo,ev.v,ev.dur)}
+  }
+}
+function animateFace(){
+  const m=$('#mouth'); if(!m)return; const L=room.levels;
+  const smile=L.alegria*10, frown=(L.tristeza+L.medo)*8, open=L.surpresa*10;
+  const asym=L.desprezo*10;
+  m.setAttribute('d',`M84 ${92-asym*0.2} Q100 ${100+smile-frown+open} 116 ${92-asym}`);
+  const bu=(L.surpresa+L.medo+L.tristeza)*8, bd=L.raiva*6;
+  $('#browL').setAttribute('d',`M78 ${64-bu+bd} L92 ${62-bu*1.2+bd*1.6}`);
+  $('#browR').setAttribute('d',`M108 ${62-bu*1.2+bd*1.6} L122 ${64-bu+bd}`);
+}
+function drawBars(){
+  for(const k in EMO){const b=$('#b_'+k);if(!b)return;const v=Math.min(1,room.levels[k]);b.style.width=(v*100).toFixed(0)+'%';$('#p_'+k).textContent=Math.round(v*100)+'%'}
+}
+function addLine(who,text,interim){
+  const i=cur(); if(!i.features.gravacao&&!interim){i.transcript.push({t:now(),who,text});save();return}
+  if(interim){const tr=$('#tr');if(!tr)return;let el=$('#interim');if(!el){el=document.createElement('div');el.id='interim';el.className='tl interim';tr.appendChild(el)}el.textContent=text;tr.scrollTop=tr.scrollHeight;return}
+  const ie=$('#interim'); if(ie) ie.remove();
+  i.transcript.push({t:now(),who,text}); save(); renderTranscript();
+  if(room&&room.liveOn&&who==='C'&&i.transcript.filter(l=>l.who==='C').length-room.liveCount>=2) liveUpdate();
+}
+function renderLive(){
+  const box=$('#liveBox'); if(!box)return; const i=cur(); const t=tplOf(i);
+  box.innerHTML=t.secoes.filter(s=>s.ativa).map(s=>{const tx=(i.secoes||{})[s.id];return `<div style="border-top:1px solid var(--line);padding:8px 0"><b class="small">${esc(s.titulo)}</b><div class="small ${tx?'':'muted'}" style="margin-top:2px">${tx?esc(tx):'Aguardando informações…'}</div></div>`}).join('');
+}
+async function liveUpdate(force){
+  if(!room||room.liveLoading)return; const i=cur(); const st=$('#liveSt');
+  room.liveLoading=true; if(st) st.innerHTML='<span class="spin" style="width:12px;height:12px"></span> atualizando';
+  room.liveCount=i.transcript.filter(l=>l.who==='C').length;
+  await fillSections(i,null,true);
+  if(room){room.liveLoading=false} if(st) st.textContent='atualizado '+fmt(now()); renderLive(); if(room&&room.flagTab) room.flagTab('par');
+}
+function ctxText(i){
+  return `Cargo avaliado: ${i.vaga}\nDescrição da vaga: ${i.descricao||'-'}\nCurrículo: ${i.curriculo||'-'}\nCompetências: ${i.competencias.map(c=>c.nome+' ('+(c.nivel?NIVEL[c.nivel]:c.status)+')').join('; ')}\nObservações do recrutador: ${i.marks.map(m=>fmt(m.t)+' '+m.label+(m.note?' - '+m.note:'')).join('; ')||'nenhuma'}\nTranscrição:\n${i.transcript.map(l=>`[${fmt(l.t)}] ${l.who==='C'?'Candidato':'Recrutador'}: ${l.text}`).join('\n')||'(sem transcrição)'}`;
+}
+async function fillSections(i,onlyId,live){
+  const t=tplOf(i); i.secoes=i.secoes||{};
+  const secs=t.secoes.filter(s=>s.ativa&&(!onlyId||s.id===onlyId));
+  try{
+    const r=await ai(`Você redige pareceres de avaliação de candidatos para uma equipe de RH no Brasil. Preencha os tópicos do modelo abaixo com base SOMENTE no contexto da entrevista. ${live?'A entrevista ainda está em andamento: atualize os tópicos com o que já se sabe e deixe vazio ("") o tópico sem informação suficiente.':'A entrevista terminou: escreva o texto final de cada tópico.'}
+Nome do candidato: ${i.candidato}
+Guia de estilo da empresa: ${t.estilo}
+${SENSITIVE_RULE}
+Não invente fatos. Não decida aprovação ou reprovação.
+Tópicos (título: o que escrever):
+${secs.map(s=>`- ${s.titulo}: ${s.instrucao}`).join('\n')}
+Texto atual dos tópicos (melhore e complete, sem perder o que já está correto):
+${secs.map(s=>`- ${s.titulo}: ${i.secoes[s.id]||'(vazio)'}`).join('\n')}
+Contexto:
+${ctxText(i)}
+Responda só em JSON: {"topicos":[{"titulo":"título exato","texto":"..."}]}`,true);
+    if(!r||!Array.isArray(r.topicos)) throw {code:'bad'};
+    r.topicos.forEach(x=>{const s=secs.find(s=>s.titulo.toLowerCase()===String(x.titulo||'').toLowerCase());if(s&&typeof x.texto==='string'&&(x.texto.trim()||!live))i.secoes[s.id]=x.texto.trim()});
+  }catch(e){
+    if(!live||!fillSections._warned){aiErr(e);fillSections._warned=true}
+    fallbackSections(i,secs);
+  }
+  save();
+}
+function fallbackSections(i,secs){
+  const tem=i.competencias.filter(c=>c.nivel==='tem'||(!c.nivel&&c.status==='ok')).map(c=>c.nome.toLowerCase());
+  const mel=i.competencias.filter(c=>c.nivel==='melhorar'||c.nivel==='nao'||(!c.nivel&&c.status!=='ok')).map(c=>c.nome.toLowerCase());
+  const art=/a$/.test(i.candidato.split(' ')[0].toLowerCase())?'a candidata':'o candidato';
+  const lista=a=>a.length>1?a.slice(0,-1).join(', ')+' e '+a[a.length-1]:a[0]||'';
+  const map={
+    s_formacao:i.curriculo?`Conforme currículo: ${i.curriculo}`:'',
+    s_perfil:tem.length||mel.length?`Durante o processo de avaliação, ${art} demonstrou ${tem.length?'bom desempenho em '+lista(tem):'postura colaborativa'}.${mel.length?' No entanto, apresentou pontos de desenvolvimento em '+lista(mel)+'.':''}`:'',
+    s_fortes:tem.length?lista(tem).replace(/^./,c=>c.toUpperCase())+'.':'',
+    s_desenv:mel.length?lista(mel).replace(/^./,c=>c.toUpperCase())+'.':'',
+    s_conclusao:tem.length||mel.length?`${art.replace(/^./,c=>c.toUpperCase())} apresenta potencial para a função.${mel.length?' Recomenda-se um plano de desenvolvimento voltado a '+lista(mel)+'.':''}`:''
+  };
+  i.secAuto=i.secAuto||{};
+  secs.forEach(s=>{const cur=i.secoes[s.id];if(map[s.id]&&(!cur||cur===i.secAuto[s.id])){i.secoes[s.id]=map[s.id];i.secAuto[s.id]=map[s.id]}});
+}
+function renderTranscript(){
+  const tr=$('#tr'); if(!tr)return; const i=cur();
+  const incTimes=i.indicios.filter(x=>x.inc).map(x=>x.lineIdx);
+  tr.innerHTML=i.transcript.length?i.transcript.map((l,idx)=>`<div class="tl ${incTimes.includes(idx)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Você'}:</b> ${esc(l.text)}</div>`).join(''):'<p class="small muted">A transcrição aparece aqui.</p>';
+  tr.scrollTop=tr.scrollHeight;
+}
+function addIndicio(emo,v,dur){
+  const i=cur(); const t=now();
+  if(room.lastEv[emo]&&t-room.lastEv[emo]<2.5)return; room.lastEv[emo]=t;
+  let inc=false,lineIdx=-1;
+  if(i.features.incongruencia&&NEG.includes(emo)){
+    for(let k=i.transcript.length-1;k>=0;k--){const l=i.transcript[k]; if(t-l.t>6)break; if(l.who==='C'){const tx=l.text.toLowerCase(); if(POS_WORDS.some(w=>tx.includes(w))){inc=true;lineIdx=k} break}}
+  }
+  const ind={t,emo,v:+v.toFixed(2),micro:dur<500,inc,lineIdx};
+  i.indicios.push(ind); save(); renderInds(); if(inc) renderTranscript();
+  if(room&&room.flagTab) room.flagTab('ind');
+  if(inc&&i.features.sugestoes){setSuggestion(EMO[emo].dica.split(': ').slice(1).join(': ').replace(/^"|"$/g,'')||EMO[emo].dica,'Incongruência: fala positiva com indício de '+EMO[emo].nome.toLowerCase()+'.')}
+}
+function renderInds(){
+  const box=$('#inds'); if(!box)return; const i=cur();
+  const list=[...i.indicios].reverse().slice(0,8);
+  if(!list.length)return;
+  box.innerHTML=list.map(x=>{const e=EMO[x.emo];return `<div class="ind ${x.inc?'inc':''}">
+    ${x.inc?'<b style="color:var(--warn)">Incongruência</b> · ':''}<b style="color:${e.cor}">Indício de ${e.nome.toLowerCase()}</b> <span class="muted">· ${fmt(x.t)} · ${Math.round(x.v*100)}%${x.micro?' · microexpressão':''}</span>
+    <div class="xs muted">${e.au}</div>
+    <div class="xs" style="margin-top:2px">${esc(e.dica)}</div></div>`}).join('');
+}
+function renderChecklist(){
+  const box=$('#cl'); if(!box)return; const i=cur();
+  box.innerHTML=i.competencias.map((c,ci)=>`<button class="cl ${c.status==='ok'?'ok':c.status==='andamento'?'and':''}" data-cl="${ci}"><span class="st">${c.status==='ok'?'✓':c.status==='andamento'?'•':''}</span><span style="flex:1">${esc(c.nome)}</span><span class="xs muted">${c.status==='ok'?'coberta':c.status==='andamento'?'em andamento':'pendente'}</span></button>`).join('');
+  box.querySelectorAll('[data-cl]').forEach(b=>b.onclick=()=>{const c=i.competencias[+b.dataset.cl];c.status=c.status==='pendente'?'andamento':c.status==='andamento'?'ok':'pendente';save();renderChecklist()});
+}
+function renderRoteiro(){
+  const box=$('#rt'); if(!box)return; const i=cur(); const c=i.competencias[room.block]; if(!c){box.innerHTML='';return}
+  $('#rtName').textContent=c.nome;
+  box.innerHTML=c.perguntas.map(q=>`<div class="qitem ${i.asked.includes(q)?'done':''}"><span style="flex:1">${esc(q)}</span><button class="btn sm ghost" data-ask="${esc(q)}">${i.asked.includes(q)?'Feita':'Marcar'}</button></div>`).join('');
+  box.querySelectorAll('[data-ask]').forEach(b=>b.onclick=()=>{const q=b.dataset.ask;if(!i.asked.includes(q))i.asked.push(q);else i.asked=i.asked.filter(x=>x!==q);save();renderRoteiro()});
+}
+function markAskedByText(text){const i=cur();for(const c of i.competencias)for(const q of c.perguntas){if(q&&text.toLowerCase().includes(q.toLowerCase().slice(0,25))&&!i.asked.includes(q))i.asked.push(q)}renderRoteiro()}
+function updateBlock(){const i=cur();const n=$('#blkName');if(n)n.textContent=(room.block+1)+'/'+i.competencias.length+' '+(i.competencias[room.block]?.nome||'')}
+function addMark(label,note){const i=cur();i.marks.push({t:now(),label,note:note||''});save();renderMarks();toast('Marcado em '+fmt(now()))}
+function renderMarks(){const b=$('#mkList');if(!b)return;const i=cur();b.innerHTML=i.marks.slice(-5).reverse().map(m=>`<div>${fmt(m.t)} · <b style="color:var(--ink)">${esc(m.label)}</b>${m.note?' — '+esc(m.note):''}</div>`).join('')}
+function setSuggestion(q,why){const a=$('#sugQ'),b=$('#sugWhy');if(!a)return;a.textContent=q;b.textContent=why||''}
+async function suggest(){
+  const i=cur(); if(room.sugLoading)return;
+  const pend=i.competencias.filter(c=>c.status!=='ok');
+  const fallback=()=>{const c=pend[0]||i.competencias[room.block];const q=(c?.perguntas||[]).find(x=>!i.asked.includes(x))||'Pode me dar um exemplo concreto, com situação, ação e resultado?';setSuggestion(q,c?'Competência ainda não coberta: '+c.nome:'')};
+  if(!sampleFn){fallback();return}
+  room.sugLoading=true; const btn=$('#bSug'); btn.innerHTML='<span class="spin"></span> Pensando…';
+  try{
+    const last=i.transcript.slice(-8).map(l=>(l.who==='C'?'Candidato':'Recrutador')+': '+l.text).join('\n');
+    const inds=i.indicios.slice(-3).map(x=>`${EMO[x.emo].nome} em ${fmt(x.t)}${x.inc?' (incongruente com a fala)':''}`).join('; ')||'nenhum';
+    const r=await ai(`Você é um copiloto de entrevista por competências para um recrutador no Brasil. Sugira UMA próxima pergunta curta, aberta e respeitosa, em português do Brasil, que aprofunde a conversa ou cubra uma competência pendente. Use os indícios de emoção apenas como pista para aprofundar, nunca para acusar ou concluir algo sobre a pessoa.\nVaga: ${i.vaga}\nCompetências pendentes: ${pend.map(c=>c.nome).join(', ')||'nenhuma'}\nIndícios recentes: ${inds}\nÚltimas falas:\n${last||'(início da entrevista)'}\nResponda só em JSON: {"pergunta":"...","motivo":"1 frase curta"}`,true);
+    if(r&&r.pergunta)setSuggestion(r.pergunta,r.motivo||''); else fallback();
+  }catch(e){aiErr(e);fallback()}
+  room.sugLoading=false; btn.innerHTML=icon('spark')+' Nova sugestão';
+}
+
+/* ---------- câmera real (fora do app Claude) ---------- */
+async function startCam(){
+  const msg=$('#camMsg');
+  if(room.mode==='cam'){stopCam();return}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){msg.textContent='Câmera indisponível aqui. Abra o arquivo do Nuance no Chrome do computador.';return}
+  try{
+    room.stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:true});
+  }catch(e){msg.textContent='Câmera bloqueada neste ambiente. Abra o arquivo do Nuance no Chrome do computador para testar ao vivo.';return}
+  room.running=false; room.mode='cam'; $('#bPlay').innerHTML=icon('play')+' Demonstração';
+  const v=$('#cam'); v.srcObject=room.stream; v.style.display='block'; $('#demoFace').style.display='none'; await v.play().catch(()=>{});
+  $('#modeTag').textContent='Câmera ao vivo'; $('#bCam').innerHTML=icon('stop')+' Desligar câmera'; room.running=true;
+  const spk=$('#bSpk'); if(spk) spk.style.display='';
+  startSpeech();
+  const i=cur();
+  if(i.features.ekman&&i.consent==='full'){
+    msg.textContent='Carregando leitura de expressões…';
+    try{
+      const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+      const fs=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+      room.lm=await vision.FaceLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',delegate:'GPU'},outputFaceBlendshapes:true,runningMode:'VIDEO',numFaces:1});
+      msg.textContent='Leitura de expressões ativa.'; faceLoop();
+    }catch(e){msg.textContent='Não foi possível carregar a leitura de expressões aqui.'}
+  } else msg.textContent='';
+}
+function stopCam(){
+  if(room.stream)room.stream.getTracks().forEach(t=>t.stop()); room.stream=null;
+  if(room.raf)cancelAnimationFrame(room.raf); room.raf=null; room.lm=null;
+  if(room.recog){room.recog._stop=true;try{room.recog.stop()}catch(e){}} room.recog=null;
+  room.mode='demo'; room.running=false;
+  const v=$('#cam'); if(v){v.style.display='none';v.srcObject=null} const f=$('#demoFace'); if(f)f.style.display='';
+  const mt=$('#modeTag'); if(mt)mt.textContent='Modo demonstração'; const bc=$('#bCam'); if(bc)bc.innerHTML=icon('cam')+' Usar minha câmera';
+}
+function startSpeech(){
+  const i=cur(); if(!i.features.gravacao)return;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR){$('#camMsg').textContent+=' Transcrição requer o Chrome.';return}
+  const r=new SR(); r.lang='pt-BR'; r.continuous=true; r.interimResults=true;
+  r.onresult=e=>{let interim='';for(let k=e.resultIndex;k<e.results.length;k++){const res=e.results[k];if(res.isFinal){addLine(room.speaker,res[0].transcript.trim());$('#cap').textContent=res[0].transcript.trim()}else interim+=res[0].transcript}if(interim)addLine(room.speaker,interim,true)};
+  r.onend=()=>{if(!r._stop&&room&&room.mode==='cam'){try{r.start()}catch(e){}}};
+  try{r.start()}catch(e){} room.recog=r;
+}
+function faceLoop(){
+  const v=$('#cam'); if(!room||!room.lm||!v)return;
+  let last=-1;
+  const step=()=>{
+    if(!room||!room.lm)return;
+    if(v.readyState>=2&&v.currentTime!==last){last=v.currentTime;
+      try{const res=room.lm.detectForVideo(v,performance.now());
+        const bs=res.faceBlendshapes&&res.faceBlendshapes[0]; if(bs){const m={};bs.categories.forEach(c=>m[c.categoryName]=c.score);scoreEkman(m)}
+      }catch(e){}
+    }
+    room.raf=requestAnimationFrame(step);
+  };
+  step();
+}
+function scoreEkman(b){
+  const g=k=>b[k]||0, avg=(...k)=>k.reduce((s,x)=>s+g(x),0)/k.length;
+  const smile=avg('mouthSmileLeft','mouthSmileRight'), cheek=avg('cheekSquintLeft','cheekSquintRight');
+  const frown=avg('mouthFrownLeft','mouthFrownRight'), browIn=g('browInnerUp'), browOut=avg('browOuterUpLeft','browOuterUpRight');
+  const browDown=avg('browDownLeft','browDownRight'), eyeWide=avg('eyeWideLeft','eyeWideRight'), eyeSq=avg('eyeSquintLeft','eyeSquintRight');
+  const sneer=avg('noseSneerLeft','noseSneerRight'), upper=avg('mouthUpperUpLeft','mouthUpperUpRight');
+  const stretch=avg('mouthStretchLeft','mouthStretchRight'), press=avg('mouthPressLeft','mouthPressRight');
+  const raw={
+    alegria:Math.min(1,smile*0.75+cheek*0.6),
+    tristeza:Math.min(1,browIn*0.6+frown*0.9)*(1-smile),
+    surpresa:Math.min(1,(browIn+browOut)*0.35+eyeWide*0.5+g('jawOpen')*0.45)*(1-browDown),
+    medo:Math.min(1,browIn*0.4+eyeWide*0.6+stretch*0.7)*(1-smile),
+    raiva:Math.min(1,browDown*0.8+eyeSq*0.3+press*0.5)*(1-smile),
+    nojo:Math.min(1,sneer*0.9+upper*0.6),
+    desprezo:Math.min(1,Math.abs(g('mouthSmileLeft')-g('mouthSmileRight'))*1.8+Math.abs(g('mouthDimpleLeft')-g('mouthDimpleRight'))*1.2)
+  };
+  const t=performance.now();
+  for(const k in raw){
+    room.levels[k]=room.levels[k]*0.6+raw[k]*0.4; const v=room.levels[k];
+    const a=room.active[k];
+    if(v>0.45&&!a) room.active[k]={start:t,peak:v};
+    else if(a){a.peak=Math.max(a.peak,v); if(v<0.3){const dur=t-a.start; if(dur>120) addIndicio(k,a.peak,dur); delete room.active[k]}}
+  }
+  drawBars();
+}
+function stopRoom(){ if(!room)return; clearInterval(room.tick); stopCam(); const i=cur(); if(i){i.duracao=room.elapsed;save()} room=null; }
+function endInterview(){
+  const i=cur(); i.duracao=room.elapsed; i.status='concluida'; stopRoom(); save(); go('parecer',i.id);
+}
+
+/* ---------- PARECER ---------- */
+function vParecer(){
+  const i=cur(); if(!i)return go('home'); const F=i.features; const dur=Math.max(i.duracao,1);
+  const evs=i.indicios.map(x=>`<span class="ev" title="${EMO[x.emo].nome} ${fmt(x.t)}" style="left:${(x.t/dur*100).toFixed(1)}%;background:${EMO[x.emo].cor};${x.inc?'outline:2px solid var(--warn);outline-offset:1px':''}"></span>`).join('');
+  const mks=i.marks.map(m=>`<span class="ev" title="${esc(m.label)} ${fmt(m.t)}" style="left:${(m.t/dur*100).toFixed(1)}%;background:var(--ink);width:4px;top:4px;height:38px"></span>`).join('');
+  app.innerHTML=`
+  <div class="row" style="margin-bottom:16px"><div style="flex:1;min-width:200px"><h1>${esc(i.candidato)}</h1><div class="muted">${esc(i.vaga)} · ${fmt(i.duracao)} de entrevista · ${i.consent==='full'?'análise autorizada':i.consent==='basic'?'análise não autorizada':'sem aceite registrado'}</div></div><button class="btn sm ghost" data-go="home">Voltar</button></div>
+  <div class="grid2" style="align-items:start">
+    <div class="stack">
+      ${F.parecer?(()=>{const t=tplOf(i);i.secoes=i.secoes||{};return `<div class="card"><div class="row"><h2 style="flex:1">Parecer</h2><button class="btn sm" id="bPar">${icon('spark')} ${t.secoes.some(s=>s.ativa&&i.secoes[s.id])?'Revisar tudo com IA':'Preencher com IA'}</button><button class="btn sm ghost" id="cPar">${icon('copy')} Copiar</button></div>
+        <div class="row" style="margin:10px 0 4px"><label class="f" for="tplSel" style="margin:0">Modelo</label><select id="tplSel" style="flex:1;min-width:180px">${S.templates.map(x=>`<option value="${x.id}" ${x.id===t.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select></div>
+        <div class="xs muted" style="margin-bottom:6px">${esc(i.candidato)} · Cargo avaliado: ${esc(i.vaga)}</div>
+        ${t.secoes.filter(s=>s.ativa).map(s=>`<div style="margin-top:14px"><div class="row"><label class="f" for="sec_${s.id}" style="margin:0;flex:1;font-size:14px;color:var(--ink)">${esc(s.titulo)}</label><button class="btn sm ghost" data-regen="${s.id}">${icon('spark')} Refazer</button></div><textarea id="sec_${s.id}" data-sec="${s.id}" style="margin-top:6px;min-height:96px" placeholder="${esc(s.instrucao)}">${esc(i.secoes[s.id]||'')}</textarea></div>`).join('')}
+        <div style="margin-top:14px"><span class="f">Parecer final (sua decisão)</span><div class="seg" role="group" aria-label="Parecer final">${PARECER_FINAL.map(p=>`<button class="${p==='Aprovado'?'tem':p==='Não recomendado'?'nao':'melhorar'} ${i.parecerFinal===p?'on':''}" data-pf="${esc(p)}" aria-pressed="${i.parecerFinal===p}">${p}</button>`).join('')}</div></div>
+        ${t.rodape?`<p class="xs muted" style="margin-top:12px">${esc(t.rodape)}</p>`:''}
+        <p class="disclaimer">Você pode editar qualquer tópico. A IA não decide aprovação e não usa indícios de emoção como conclusão.</p></div>`})():''}
+      ${(i.indicios.length||i.marks.length)?`<div class="card"><h3>Linha do tempo</h3><div class="timeline">${evs}${mks}</div><div class="legend">${Object.entries(EMO).filter(([k])=>i.indicios.some(x=>x.emo===k)).map(([k,e])=>`<span><i style="background:${e.cor}"></i>${e.nome}</span>`).join('')}${i.marks.length?'<span><i style="background:var(--ink)"></i>Suas marcações</span>':''}${i.indicios.some(x=>x.inc)?'<span><i style="outline:2px solid var(--warn);background:#fff"></i>Incongruência</span>':''}</div>
+        <div class="small" style="margin-top:10px">${i.marks.map(m=>`<div>${fmt(m.t)} · <b>${esc(m.label)}</b>${m.note?' — '+esc(m.note):''}</div>`).join('')}</div></div>`:''}
+      ${F.devolutiva?`<div class="card"><div class="row"><h3>Devolutiva ao candidato</h3><span class="spacer"></span><button class="btn sm" id="bDev">${icon('spark')} ${i.devolutiva?'Refazer':'Gerar'} rascunho</button></div><div id="devOut" style="margin-top:8px">${i.devolutiva?`<div class="msgbox">${esc(i.devolutiva)}</div><button class="btn sm ghost" id="cDev" style="margin-top:8px">${icon('copy')} Copiar</button>`:'<p class="small muted">Rascunho de retorno respeitoso, sem citar a análise de expressões.</p>'}</div></div>`:''}
+    </div>
+    <div class="stack">
+      <div class="card"><div class="row"><h3>Avaliação por competência</h3><span class="spacer"></span><button class="btn sm" id="bSugLv">${icon('spark')} ${i.competencias.some(c=>c.sug)?'Refazer sugestões':'Sugerir avaliação'}</button></div>
+        <p class="xs muted" style="margin:4px 0 6px">A IA sugere com base nas respostas do candidato. Você confirma ou ajusta. Indícios de emoção não entram nessa avaliação.</p>
+        <div id="lvBox">${i.competencias.map((c,ci)=>{const s=c.sug;const adj=c.nivel&&s&&c.nivel!==s.nivel;return `<div class="comp">
+          <div class="row"><b style="font-size:15px;flex:1">${esc(c.nome)}</b>${s?`<span class="lv ${s.nivel}">Sugestão: ${NIVEL_CURTO[s.nivel]||''}</span>`:''}</div>
+          ${s?`<div class="sug">${esc(s.justificativa||'')}${s.evidencia?`<q>"${esc(s.evidencia)}"</q>`:''}</div>`:'<p class="xs muted" style="margin-top:4px">Sem sugestão ainda.</p>'}
+          <div class="seg" role="group" aria-label="Avaliação final de ${esc(c.nome)}">${['tem','melhorar','nao'].map(n=>`<button class="${n} ${c.nivel===n?'on':''}" data-lv="${ci}:${n}" aria-pressed="${c.nivel===n}">${NIVEL[n]}</button>`).join('')}</div>
+          ${c.nivel?`<p class="xs muted" style="margin-top:6px">${adj?'Ajustado por você':s&&c.nivel===s.nivel?'Sugestão confirmada':'Definido por você'}</p>`:''}
+        </div>`}).join('')}</div></div>
+      ${F.pares?`<div class="card stack"><h3>Avaliação por pares</h3>${i.pares.map(p=>`<div class="small"><b>${esc(p.autor)}:</b> ${esc(p.texto)}</div>`).join('')||'<p class="small muted">Nenhum comentário ainda.</p>'}
+        <div><label class="f" for="pA">Quem avalia</label><input id="pA" type="text" placeholder="Gestor da área"></div><div><label class="f" for="pT">Comentário</label><textarea id="pT" style="min-height:70px" placeholder="O que você observou na gravação?"></textarea></div><p id="pErr" class="small" style="color:#A3301E;min-height:18px"></p><button class="btn sm" id="bPar2">Adicionar comentário</button></div>`:''}
+      ${F.gravacao&&i.transcript.length?`<div class="card"><div class="row"><h3>Transcrição</h3><span class="spacer"></span><button class="btn sm ghost" id="cTr">${icon('copy')} Copiar</button></div><div class="transcript" style="max-height:320px;margin-top:8px">${i.transcript.map(l=>`<div class="tl"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}</div>`).join('')}</div></div>`:''}
+    </div>
+  </div>`;
+  app.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{const[ci,n]=b.dataset.lv.split(':');const c=i.competencias[+ci];c.nivel=c.nivel===n?null:n;save();vParecer()});
+  const bsl=$('#bSugLv'); if(bsl) bsl.onclick=()=>suggestLevels(i,bsl);
+  if(!i.competencias.some(c=>c.sug)&&i.transcript.some(l=>l.who==='C')&&!vParecer._auto?.[i.id]){vParecer._auto={...(vParecer._auto||{}),[i.id]:true};setTimeout(async()=>{const b=$('#bSugLv');if(!(b&&view==='parecer'&&curId===i.id))return;await suggestLevels(i,b);if(i.features.parecer){const bp=$('#bPar');if(bp){bp.innerHTML='<span class="spin"></span> Escrevendo…';bp.disabled=true}await fillSections(i,null,false);if(view==='parecer'&&curId===i.id)vParecer()}},300)}
+  const trText=()=>i.transcript.map(l=>`[${fmt(l.t)}] ${l.who==='C'?i.candidato:'Recrutador'}: ${l.text}`).join('\n');
+  const ct=$('#cTr'); if(ct) ct.onclick=()=>copy(trText());
+  const parText=()=>{const t=tplOf(i);return `${i.candidato}\nCargo avaliado: ${i.vaga}\n\n`+t.secoes.filter(s=>s.ativa&&i.secoes[s.id]).map(s=>`${s.titulo}\n${i.secoes[s.id]}`).join('\n\n')+(i.parecerFinal?`\n\nParecer final: ${i.parecerFinal}`:'')+(t.rodape?`\n\n${t.rodape}`:'')};
+  const cp=$('#cPar'); if(cp) cp.onclick=()=>copy(parText());
+  app.querySelectorAll('[data-sec]').forEach(ta=>ta.addEventListener('input',()=>{i.secoes[ta.dataset.sec]=ta.value;save()}));
+  app.querySelectorAll('[data-pf]').forEach(b=>b.onclick=()=>{i.parecerFinal=i.parecerFinal===b.dataset.pf?'':b.dataset.pf;save();vParecer()});
+  const ts=$('#tplSel'); if(ts) ts.onchange=()=>{i.templateId=ts.value;save();vParecer()};
+  app.querySelectorAll('[data-regen]').forEach(b=>b.onclick=async()=>{b.innerHTML='<span class="spin"></span>';b.disabled=true;const id=b.dataset.regen;const old=i.secoes[id];i.secoes[id]='';await fillSections(i,id,false);if(!i.secoes[id])i.secoes[id]=old||'';vParecer()});
+  const cd=$('#cDev'); if(cd) cd.onclick=()=>copy(i.devolutiva);
+  const bp=$('#bPar'); if(bp) bp.onclick=async()=>{bp.innerHTML='<span class="spin"></span> Escrevendo…';bp.disabled=true;await fillSections(i,null,false);vParecer()};
+  const bd=$('#bDev'); if(bd) bd.onclick=async()=>{
+    bd.innerHTML='<span class="spin"></span> Gerando…';bd.disabled=true;
+    try{ const t=await ai(`Escreva, em português do Brasil, um rascunho de devolutiva curta, gentil e profissional para ${i.candidato}, que participou da entrevista para ${i.vaga} na ${S.settings.empresa}. Agradeça, destaque 1 ou 2 pontos fortes concretos com base nas competências bem avaliadas (${i.competencias.filter(c=>c.nivel==='tem').map(c=>c.nome).join(', ')||'participação e clareza'}) e diga que o processo seguirá e que haverá retorno. NÃO mencione análise de expressões, emoções ou notas. Deixe [RESULTADO] onde o recrutador deve completar. Apenas o texto da mensagem.`,false); i.devolutiva=t; }
+    catch(e){ aiErr(e); i.devolutiva=`Olá, ${i.candidato.split(' ')[0]}!\n\nObrigado por participar da entrevista para a vaga de ${i.vaga} na ${S.settings.empresa}. Gostamos de conhecer sua trajetória e os exemplos que você compartilhou.\n\n[RESULTADO]\n\nSeguimos à disposição para qualquer dúvida.\n\nUm abraço,\nEquipe de Recrutamento`; }
+    save(); vParecer();
+  };
+  const ba=$('#bPar2'); if(ba){ $('#pT').oninput=()=>$('#pErr').textContent=''; ba.onclick=()=>{const a=$('#pA').value.trim()||'Avaliador',t=$('#pT').value.trim(); if(!t){$('#pErr').textContent='Escreva o comentário primeiro.';return} i.pares.push({autor:a,texto:t}); save(); vParecer(); toast('Comentário adicionado')} }
+}
+async function suggestLevels(i,btn){
+  btn.innerHTML='<span class="spin"></span> Analisando respostas…';btn.disabled=true;
+  const tr=i.transcript.map(l=>`[${fmt(l.t)}] ${l.who==='C'?'Candidato':'Recrutador'}: ${l.text}`).join('\n');
+  const apply=list=>{i.competencias.forEach(c=>{const s=list.find(x=>String(x.competencia||'').toLowerCase()===c.nome.toLowerCase());if(s&&NIVEL[s.nivel]){c.sug={nivel:s.nivel,justificativa:String(s.justificativa||''),evidencia:String(s.evidencia||'')};if(!c.nivel&&s.nivel!=='sem')c.nivel=s.nivel}})};
+  try{
+    const r=await ai(`Você avalia competências em entrevistas comportamentais no Brasil. Com base SOMENTE nas respostas do candidato na transcrição abaixo, sugira para cada competência um nível:
+- "tem": deu exemplo concreto, com ação própria e resultado;
+- "melhorar": mostra a competência, mas de forma parcial, genérica, sem resultado claro ou com pouca experiência;
+- "nao": as respostas indicam ausência da competência ou comportamento contrário;
+- "sem": a competência não foi explorada o suficiente para avaliar.
+Não use emoções, aparência, sotaque ou características pessoais. Seja justo e específico.
+Vaga: ${i.vaga}
+Competências: ${i.competencias.map(c=>c.nome).join(', ')}
+Transcrição:
+${tr||'(vazia)'}
+Responda só em JSON: {"avaliacoes":[{"competencia":"nome exato","nivel":"tem|melhorar|nao|sem","justificativa":"1 a 2 frases","evidencia":"citação curta e literal do candidato, ou vazio"}]}`,true);
+    if(r&&Array.isArray(r.avaliacoes))apply(r.avaliacoes); else throw {code:'bad'};
+  }catch(e){
+    aiErr(e);
+    apply(i.competencias.map(c=>{const lines=i.transcript.filter(l=>l.who==='C');
+      const nivel=c.status==='ok'?'tem':c.status==='andamento'?'melhorar':'sem';
+      return {competencia:c.nome,nivel,justificativa:nivel==='tem'?'Competência coberta na conversa (estimativa sem IA, com base no checklist).':nivel==='melhorar'?'Competência abordada só em parte (estimativa sem IA).':'Competência não explorada o suficiente.',evidencia:''}}));
+  }
+  save(); if(view==='parecer'&&curId===i.id) vParecer();
+}
+function fallbackParecer(i){
+  const ok=i.competencias.filter(c=>c.status==='ok').map(c=>c.nome), pend=i.competencias.filter(c=>c.status!=='ok').map(c=>c.nome);
+  const inc=i.indicios.filter(x=>x.inc);
+  return `### Resumo\nEntrevista de ${fmt(i.duracao)} para ${i.vaga}. ${ok.length} de ${i.competencias.length} competências cobertas.\n### Competências cobertas\n${ok.map(x=>'- '+x).join('\n')||'- Nenhuma'}\n### Pontos a aprofundar\n${pend.map(x=>'- '+x).join('\n')||'- Nenhum'}${inc.length?'\n'+inc.map(x=>`- Incongruência em ${fmt(x.t)}: fala positiva com indício de ${EMO[x.emo].nome.toLowerCase()}. Vale retomar o tema com um exemplo concreto.`).join('\n'):''}\n### Indícios de emoção\n${i.indicios.map(x=>`- ${fmt(x.t)}: ${EMO[x.emo].nome}${x.micro?' (microexpressão)':''}`).join('\n')||'- Nenhum registrado'}\n\nParecer gerado sem IA neste ambiente.`;
+}
+
+/* ---------- COMPARAR ---------- */
+function vComparar(){
+  const vagas=[...new Set(S.interviews.map(i=>i.vaga))];
+  let sel=vComparar.sel&&vagas.includes(vComparar.sel)?vComparar.sel:vagas[0];
+  const list=S.interviews.filter(i=>i.vaga===sel&&i.status==='concluida'&&i.features.comparativo!==false);
+  const comps=[...new Set(list.flatMap(i=>i.competencias.map(c=>c.nome)))];
+  const avg=i=>{const t=i.competencias.filter(c=>c.nivel==='tem').length,m=i.competencias.filter(c=>c.nivel==='melhorar').length;return `<span class="lv tem">${t} tem</span> <span class="lv melhorar">${m} a melhorar</span>`};
+  app.innerHTML=`<div class="row" style="margin-bottom:16px"><h1>Comparar candidatos</h1></div>
+  <div class="card stack">
+    <div style="max-width:360px"><label class="f" for="cmpV">Vaga</label><select id="cmpV">${vagas.map(v=>`<option ${v===sel?'selected':''}>${esc(v)}</option>`).join('')}</select></div>
+    ${list.length?`<div class="tablewrap"><table class="cmp"><thead><tr><th>Competência</th>${list.map(i=>`<th><button class="btn sm ghost" data-go="parecer" data-id="${i.id}">${esc(i.candidato)}</button></th>`).join('')}</tr></thead><tbody>
+      ${comps.map(c=>`<tr><td><b>${esc(c)}</b></td>${list.map(i=>{const x=i.competencias.find(k=>k.nome===c);return `<td>${x&&x.nivel?`<span class="lv ${x.nivel}">${NIVEL_CURTO[x.nivel]}</span>`:x&&x.sug?`<span class="lv sem">Sugestão: ${NIVEL_CURTO[x.sug.nivel]}</span>`:'<span class="muted small">sem avaliação</span>'}</td>`}).join('')}</tr>`).join('')}
+      <tr><td><b>Resumo</b></td>${list.map(i=>`<td>${avg(i)}</td>`).join('')}</tr>
+      <tr><td class="small muted">Duração</td>${list.map(i=>`<td class="small">${fmt(i.duracao)}</td>`).join('')}</tr>
+      <tr><td class="small muted">Comentários de pares</td>${list.map(i=>`<td class="small">${i.pares.length}</td>`).join('')}</tr>
+    </tbody></table></div><p class="xs muted">O comparativo usa a avaliação final de cada competência. Indícios de emoção não entram na comparação.</p>`:'<p class="muted">Nenhuma entrevista concluída para esta vaga ainda.</p>'}
+  </div>`;
+  $('#cmpV').onchange=e=>{vComparar.sel=e.target.value;vComparar()};
+}
+
+/* ---------- MODELOS DE PARECER ---------- */
+let tplSelId=null;
+function vModelos(){
+  if(!S.templates.find(t=>t.id===tplSelId)) tplSelId=(S.templates.find(t=>t.padrao)||S.templates[0]).id;
+  const t=S.templates.find(x=>x.id===tplSelId);
+  app.innerHTML=`<div class="row" style="margin-bottom:16px"><h1 style="flex:1">Modelos de parecer</h1></div>
+  <div class="grid2" style="align-items:start">
+    <div class="stack">
+      <div class="card"><h3 style="margin-bottom:6px">Seus modelos</h3>
+        ${S.templates.map(x=>`<div class="list-item"><div style="flex:1;min-width:140px"><b>${esc(x.nome)}</b><div class="xs muted">${x.secoes.filter(s=>s.ativa).length} tópicos ativos</div></div>${x.padrao?'<span class="pill terra">Padrão</span>':''}<button class="btn sm ${x.id===tplSelId?'dark':''}" data-tsel="${x.id}">${x.id===tplSelId?'Editando':'Editar'}</button></div>`).join('')}
+        <button class="btn sm ghost" id="tNew" style="margin-top:8px">+ Modelo em branco</button></div>
+      <div class="card stack"><h3>Importar do seu parecer</h3>
+        <p class="small muted">Envie um parecer que você já usa (.docx ou .txt) ou cole o texto. A IA identifica os títulos e o estilo de escrita e cria um modelo.</p>
+        <label class="btn sm ghost" style="cursor:pointer;align-self:flex-start">Enviar arquivo<input type="file" id="tFile" accept=".docx,.txt,text/plain" class="sr"></label>
+        <label class="sr" for="tPaste">Texto do parecer</label><textarea id="tPaste" placeholder="Cole aqui um parecer de exemplo"></textarea>
+        <p id="tErr" class="small" style="color:#A3301E;min-height:18px"></p>
+        <button class="btn primary" id="tImport">${icon('spark')} Criar modelo a partir do exemplo</button>
+        <p class="xs muted">Dica: remova nomes e dados pessoais do exemplo antes de enviar. Só a estrutura e o estilo são usados.</p></div>
+    </div>
+    <div class="card stack">
+      <div><label class="f" for="tNome">Nome do modelo</label><input id="tNome" type="text" value="${esc(t.nome)}"></div>
+      <div><label class="f" for="tEst">Guia de estilo (como a IA deve escrever)</label><textarea id="tEst" style="min-height:120px">${esc(t.estilo)}</textarea></div>
+      <div class="row"><h3 style="flex:1">Tópicos</h3><button class="btn sm ghost" id="tAddSec">+ Tópico</button></div>
+      <div id="tSecs">${t.secoes.map((s,k)=>`<div style="border-top:1px solid var(--line);padding:12px 0">
+        <div class="row"><input type="text" data-stit="${k}" value="${esc(s.titulo)}" aria-label="Título do tópico" style="font-weight:700;flex:1;min-width:160px"><label class="switch" title="Ativo"><input type="checkbox" data-sat="${k}" ${s.ativa?'checked':''} aria-label="Tópico ativo"><span></span></label></div>
+        <textarea data-sins="${k}" aria-label="Instrução do tópico" style="margin-top:6px;min-height:70px;font-size:14px" placeholder="O que a IA deve escrever neste tópico">${esc(s.instrucao)}</textarea>
+        <div class="row" style="margin-top:6px"><button class="btn sm ghost" data-sup="${k}" ${k===0?'disabled':''}>Subir</button><button class="btn sm ghost" data-sdel="${k}">Remover</button></div></div>`).join('')}</div>
+      <div><label class="f" for="tRod">Rodapé</label><input id="tRod" type="text" value="${esc(t.rodape||'')}" placeholder="Este parecer é confidencial e não deverá ser compartilhado."></div>
+      <div class="row">${t.padrao?'<span class="pill terra">Modelo padrão</span>':'<button class="btn sm" id="tPad">Definir como padrão</button>'}<button class="btn sm ghost" id="tDup">Duplicar</button>${S.templates.length>1?'<button class="btn sm danger" id="tDel">Excluir</button>':''}<span class="spacer"></span><span class="xs muted">Salvo automaticamente</span></div>
+    </div>
+  </div>`;
+  const sv=()=>save();
+  app.querySelectorAll('[data-tsel]').forEach(b=>b.onclick=()=>{tplSelId=b.dataset.tsel;vModelos()});
+  $('#tNome').oninput=e=>{t.nome=e.target.value;sv()}; $('#tEst').oninput=e=>{t.estilo=e.target.value;sv()}; $('#tRod').oninput=e=>{t.rodape=e.target.value;sv()};
+  app.querySelectorAll('[data-stit]').forEach(x=>x.oninput=()=>{t.secoes[+x.dataset.stit].titulo=x.value;sv()});
+  app.querySelectorAll('[data-sins]').forEach(x=>x.oninput=()=>{t.secoes[+x.dataset.sins].instrucao=x.value;sv()});
+  app.querySelectorAll('[data-sat]').forEach(x=>x.onchange=()=>{t.secoes[+x.dataset.sat].ativa=x.checked;sv()});
+  app.querySelectorAll('[data-sup]').forEach(b=>b.onclick=()=>{const k=+b.dataset.sup;if(k>0){[t.secoes[k-1],t.secoes[k]]=[t.secoes[k],t.secoes[k-1]];sv();vModelos()}});
+  app.querySelectorAll('[data-sdel]').forEach(b=>b.onclick=()=>{t.secoes.splice(+b.dataset.sdel,1);sv();vModelos()});
+  $('#tAddSec').onclick=()=>{t.secoes.push({id:'s'+Date.now(),titulo:'Novo tópico',instrucao:'',ativa:true});sv();vModelos()};
+  $('#tNew').onclick=()=>{const n={id:'t'+Date.now(),nome:'Novo modelo',padrao:false,estilo:'Terceira pessoa, linguagem formal e objetiva.',rodape:'',secoes:[{id:'s'+Date.now(),titulo:'Conclusão',instrucao:'',ativa:true}]};S.templates.push(n);tplSelId=n.id;sv();vModelos()};
+  const pd=$('#tPad'); if(pd) pd.onclick=()=>{S.templates.forEach(x=>x.padrao=x.id===t.id);sv();vModelos();toast('Modelo padrão definido')};
+  $('#tDup').onclick=()=>{const n=JSON.parse(JSON.stringify(t));n.id='t'+Date.now();n.nome=t.nome+' (cópia)';n.padrao=false;S.templates.push(n);tplSelId=n.id;sv();vModelos()};
+  const dl=$('#tDel'); if(dl) dl.onclick=()=>confirmBox(`Excluir o modelo "${t.nome}"?`,'Excluir',()=>{S.templates=S.templates.filter(x=>x.id!==t.id);if(!S.templates.some(x=>x.padrao))S.templates[0].padrao=true;sv();vModelos()});
+  $('#tPaste').oninput=()=>$('#tErr').textContent='';
+  $('#tFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const tx=/\.docx$/i.test(f.name)?await docxText(f):await f.text();$('#tPaste').value=tx;toast('Arquivo carregado')}catch(err){$('#tErr').textContent='Não consegui ler esse arquivo. Cole o texto no campo.'}};
+  $('#tImport').onclick=async e=>{
+    const tx=$('#tPaste').value.trim(); if(tx.length<40){$('#tErr').textContent='Envie um arquivo ou cole um parecer de exemplo.';return}
+    const b=e.currentTarget; b.innerHTML='<span class="spin"></span> Analisando o exemplo…'; b.disabled=true;
+    let n=null;
+    try{
+      const r=await ai(`Analise o parecer de exemplo abaixo e extraia um MODELO reutilizável, em português do Brasil. Identifique os títulos dos tópicos na ordem em que aparecem e, para cada um, escreva uma instrução curta do que deve ser escrito ali (sem copiar dados da pessoa). Descreva o estilo de escrita (pessoa verbal, formalidade, tamanho dos parágrafos, expressões recorrentes) para que outra IA escreva igual. Identifique um rodapé fixo, se houver. Ignore nomes de pessoas.
+Exemplo:
+${tx.slice(0,12000)}
+Responda só em JSON: {"nome":"nome curto do modelo","estilo":"...","rodape":"... ou vazio","topicos":[{"titulo":"...","instrucao":"..."}]}`,true);
+      if(r&&Array.isArray(r.topicos)&&r.topicos.length) n={nome:String(r.nome||'Modelo importado'),estilo:String(r.estilo||''),rodape:String(r.rodape||''),secoes:r.topicos.map((s,k)=>({id:'s'+Date.now()+k,titulo:String(s.titulo),instrucao:String(s.instrucao||''),ativa:true}))};
+      else throw {code:'bad'};
+    }catch(err){
+      aiErr(err);
+      const lines=tx.split(/\n+/).map(l=>l.trim()).filter(Boolean);
+      const heads=lines.filter(l=>l.length<70&&!/[.;]$/.test(l.replace(/:$/,''))&&l.split(' ').length<=8&&(/:$/.test(l)||/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/.test(l))).map(l=>l.replace(/:$/,''));
+      const uniq=[...new Set(heads)].slice(1,12);
+      n={nome:'Modelo importado',estilo:'Terceira pessoa, linguagem formal e objetiva, em parágrafos corridos.',rodape:'',secoes:(uniq.length?uniq:['Conclusão']).map((h,k)=>({id:'s'+Date.now()+k,titulo:h,instrucao:'',ativa:true}))};
+    }
+    n.id='t'+Date.now(); n.padrao=false;
+    if(n.secoes.some(s=>/pessoa|famil/i.test(s.titulo))) n.secoes.forEach(s=>{if(/pessoa|famil/i.test(s.titulo)){s.ativa=false;s.instrucao=(s.instrucao?s.instrucao+' ':'')+'Atenção: estado civil e situação familiar não podem ser critério de seleção (Lei 9.029/95).'}});
+    S.templates.push(n); tplSelId=n.id; save(); vModelos(); toast('Modelo criado. Revise os tópicos.');
+  };
+}
+function loadScript(src){return new Promise((res,rej)=>{if(loadScript[src])return res();const s=document.createElement('script');s.src=src;s.onload=()=>{loadScript[src]=1;res()};s.onerror=rej;document.head.appendChild(s)})}
+async function docxText(file){
+  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');
+  const zip=await JSZip.loadAsync(file); const xml=await zip.file('word/document.xml').async('string');
+  return xml.split(/<\/w:p>/).map(p=>p.replace(/<w:tab\/>/g,' ').replace(/<[^>]+>/g,'')).map(t=>t.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").trim()).filter(Boolean).join('\n');
+}
+
+/* ---------- LGPD ---------- */
+function vLgpd(){
+  const st=S.settings; const days=ms=>Math.floor((Date.now()-ms)/864e5);
+  app.innerHTML=`<div class="row" style="margin-bottom:16px"><h1>Painel LGPD</h1></div>
+  <div class="grid2" style="align-items:start">
+    <div class="card stack"><h3>Configurações do termo</h3>
+      <div><label class="f" for="sE">Empresa</label><input id="sE" type="text" value="${esc(st.empresa)}"></div>
+      <div><label class="f" for="sC">E-mail para pedidos do titular</label><input id="sC" type="text" value="${esc(st.contato)}"></div>
+      <div><label class="f" for="sR">Retenção (dias)</label><input id="sR" type="number" min="1" max="365" step="1" value="${esc(st.retencao)}"></div>
+      <p id="sErr" class="small" style="color:#A3301E;min-height:18px"></p>
+      <button class="btn primary" id="sSave">Salvar</button>
+      <p class="xs muted">Esses dados aparecem no termo que o candidato vê antes de entrar.</p>
+    </div>
+    <div class="card"><h3 style="margin-bottom:8px">Aceites registrados</h3>
+      ${S.consents.length?[...S.consents].reverse().map(c=>`<div class="list-item"><div style="flex:1;min-width:160px"><b>${esc(c.candidato)}</b><div class="xs muted">${new Date(c.at).toLocaleString('pt-BR')} · ${esc(c.code)} · termo v${esc(c.versao)}${c.simulado?' · simulado':''}</div></div><span class="pill ${c.choice==='full'?'ok':'blue'}">${c.choice==='full'?'Autorizou análise':'Só gravação'}</span></div>`).join(''):'<p class="muted small">Nenhum aceite ainda.</p>'}
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px"><h3 style="margin-bottom:8px">Dados por entrevista</h3>
+    ${S.interviews.map(i=>{const d=days(i.createdAt),exp=d>=st.retencao;return `<div class="list-item"><div style="flex:1;min-width:160px"><b>${esc(i.candidato)}</b><div class="xs muted">${esc(i.vaga)} · criada há ${d} dia${d===1?'':'s'} · ${i.transcript.length} falas · ${i.indicios.length} indícios</div></div>${exp?'<span class="pill warn">Prazo vencido</span>':`<span class="pill gray">Expira em ${st.retencao-d} dias</span>`}<button class="btn sm ghost" data-exp="${i.id}">${icon('copy')} Copiar dados</button><button class="btn sm danger" data-del="${i.id}">Excluir</button></div>`}).join('')||'<p class="muted small">Sem dados.</p>'}
+  </div>`;
+  $('#sSave').onclick=()=>{const r=parseInt($('#sR').value,10); if(!$('#sE').value.trim()||!$('#sC').value.trim()){$('#sErr').textContent='Preencha empresa e e-mail.';return} if(!(r>=1&&r<=365)){$('#sErr').textContent='Retenção entre 1 e 365 dias.';return} st.empresa=$('#sE').value.trim();st.contato=$('#sC').value.trim();st.retencao=r;save();toast('Configurações salvas');vLgpd()};
+  ['#sE','#sC','#sR'].forEach(s=>$(s).addEventListener('input',()=>$('#sErr').textContent=''));
+  app.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{const i=S.interviews.find(x=>x.id===b.dataset.exp);copy(JSON.stringify({candidato:i.candidato,vaga:i.vaga,consentimento:S.consents.filter(c=>c.iid===i.id),transcricao:i.transcript,indicios:i.indicios,marcacoes:i.marks,parecer:i.parecer},null,2))});
+  app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const i=S.interviews.find(x=>x.id===b.dataset.del);confirmBox(`Excluir todos os dados de ${i.candidato}?`,'Excluir',()=>{S.interviews=S.interviews.filter(x=>x.id!==i.id);save();toast('Dados excluídos');vLgpd()})});
+}
+
+go('home');
+</script>
+</body>
+</html>
