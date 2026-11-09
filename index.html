@@ -765,7 +765,7 @@ function vSala(){
         ${F.parecer?'<button role="tab" data-tab="par">Parecer</button>':''}
       </div>
       <div class="tabp" data-tabp="ind">
-      ${F.ekman?(ekmanOn?`<div class="panel"><div class="panel-h"><h3>Indícios Ekman</h3><span class="spacer"></span><span class="xs muted">ao vivo</span></div>
+      ${F.ekman?(ekmanOn?`<div class="panel"><div class="panel-h"><h3>Indícios Ekman</h3><span class="spacer"></span><label class="xs muted" for="sensSel">Sensibilidade</label><select id="sensSel" style="width:auto;min-height:32px;padding:4px 8px;font-size:13px"><option value="baixa">Baixa</option><option value="media">Média</option><option value="alta">Alta</option></select></div>
         <div class="bars" id="bars">${Object.entries(EMO).map(([k,e])=>`<span>${e.nome}</span><span class="bar"><i id="b_${k}" style="width:0;background:${e.cor}"></i></span><span class="xs muted" id="p_${k}">0%</span>`).join('')}</div>
         <hr class="s" style="margin:12px 0 4px"><div id="inds"><p class="small muted" style="padding:8px 0">Os indícios aparecem aqui conforme a conversa acontece.</p></div>
         <p class="disclaimer">Indícios são hipóteses para explorar com perguntas, nunca conclusões sobre a pessoa.</p></div>`
@@ -786,6 +786,7 @@ function vSala(){
   </div>`;
   if(!i.consent&&i.demo){$('#simFull').onclick=()=>{i.consent='full';S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice:'full',at:new Date().toISOString(),versao:CONSENT_VERSION,simulado:true});save();vSala()};$('#simBasic').onclick=()=>{i.consent='basic';S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice:'basic',at:new Date().toISOString(),versao:CONSENT_VERSION,simulado:true});save();vSala()}}
   renderTranscript(); renderInds(); renderChecklist(); renderRoteiro(); renderMarks(); updateBlock(); renderLive();
+  const ss=$('#sensSel'); if(ss){ss.value=S.settings.sens||'media';ss.onchange=()=>{S.settings.sens=ss.value;save();toast('Sensibilidade: '+ss.options[ss.selectedIndex].text)}}
   const tabBtns=[...app.querySelectorAll('[data-tab]')];
   const showTab=k=>{tabBtns.forEach(b=>{const on=b.dataset.tab===k;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);if(on){const bd=b.querySelector('.badge');if(bd)bd.remove()}});app.querySelectorAll('[data-tabp]').forEach(p=>p.classList.toggle('on',p.dataset.tabp===k));room.tab=k};
   tabBtns.forEach(b=>b.onclick=()=>showTab(b.dataset.tab)); if(tabBtns[0]) showTab(tabBtns[0].dataset.tab);
@@ -944,9 +945,9 @@ function renderTranscript(){
 }
 function addIndicio(emo,v,dur){
   const i=cur(); const t=now();
-  const cool=room.mode==='demo'?2.5:10;
+  const cool=room.mode==='demo'?2.5:6;
   if(room.lastEv[emo]&&t-room.lastEv[emo]<cool)return; room.lastEv[emo]=t;
-  const ind={t,emo,v:+v.toFixed(2),micro:dur<500&&v>=0.65,inc:false,lineIdx:-1,snippet:''};
+  const ind={t,emo,v:+v.toFixed(2),micro:dur<500&&v>=0.55,inc:false,lineIdx:-1,snippet:''};
   i.indicios.push(ind); refreshIndCtx(i); renderInds(); renderTranscript();
   if(room&&room.flagTab) room.flagTab('ind');
 }
@@ -1095,7 +1096,7 @@ function scoreEkman(b){
   const avg=(...k)=>k.reduce((s,x)=>s+g(x),0)/k.length;
   // 2) enquanto a pessoa fala, a boca se mexe por causa da fala: reduz o peso dos sinais da boca
   const talking=room.remoteLevel?room.remoteLevel.read()>0.012:false;
-  const mw=talking?0.25:1;
+  const mw=talking?0.4:1;
   const smile=avg('mouthSmileLeft','mouthSmileRight'), cheek=avg('cheekSquintLeft','cheekSquintRight');
   const frown=avg('mouthFrownLeft','mouthFrownRight')*mw, browIn=g('browInnerUp'), browOut=avg('browOuterUpLeft','browOuterUpRight');
   const browDown=avg('browDownLeft','browDownRight'), eyeWide=avg('eyeWideLeft','eyeWideRight'), eyeSq=avg('eyeSquintLeft','eyeSquintRight');
@@ -1103,20 +1104,24 @@ function scoreEkman(b){
   const stretch=avg('mouthStretchLeft','mouthStretchRight')*mw, press=avg('mouthPressLeft','mouthPressRight')*mw, jaw=g('jawOpen')*mw;
   const asym=(Math.abs(g('mouthSmileLeft')-g('mouthSmileRight'))*1.6+Math.abs(g('mouthDimpleLeft')-g('mouthDimpleRight'))*1.0)*mw;
   const raw={
-    alegria:Math.min(1,smile*(talking?0.5:0.8)+cheek*0.8),
-    tristeza:Math.min(1,browIn*0.7+frown*0.9)*(1-Math.min(1,smile*2)),
-    surpresa:Math.min(1,(browIn+browOut)*0.45+eyeWide*0.7+jaw*0.4)*(1-browDown),
-    medo:Math.min(1,browIn*0.45+eyeWide*0.7+stretch*0.6)*(1-Math.min(1,smile*2)),
-    raiva:Math.min(1,browDown*0.9+eyeSq*0.3+press*0.5)*(1-Math.min(1,smile*2)),
-    nojo:Math.min(1,sneer*1.0+upper*0.6),
-    desprezo:Math.min(1,asym)*(1-Math.min(1,cheek*1.5))
+    alegria:Math.min(1,smile*(talking?0.6:0.9)+cheek*0.7),
+    tristeza:Math.min(1,browIn*1.0+frown*1.3)*(1-Math.min(1,smile*1.5))*(1-Math.min(1,eyeWide*2))*(1-Math.min(1,jaw*1.5)),
+    surpresa:Math.min(1,browOut*0.9+browIn*0.5+eyeWide*1.2+jaw*0.6)*(1-Math.min(1,browDown*1.5))*(1-Math.min(1,stretch*2)),
+    medo:Math.min(1,browIn*0.6+eyeWide*0.8+stretch*1.0)*Math.min(1,0.3+stretch*3.5)*(1-Math.min(1,smile*1.5)),
+    raiva:Math.min(1,browDown*1.6+eyeSq*0.4+press*0.7+sneer*0.3)*(1-Math.min(1,smile*1.5)),
+    nojo:Math.min(1,sneer*1.6+upper*0.9),
+    desprezo:Math.min(1,asym*2.0)*(1-Math.min(1,cheek*1.2))
   };
-  const t=performance.now(), ON=0.55, OFF=0.35;
+  // emoção dominante prevalece: as que ficam bem abaixo dela são atenuadas
+  const top=Math.max(...Object.values(raw));
+  for(const k in raw){if(raw[k]<top-0.15)raw[k]*=0.6}
+  const SENS={baixa:[0.6,0.38],media:[0.45,0.28],alta:[0.32,0.2]}[S.settings.sens||'media'];
+  const t=performance.now(), ON=SENS[0], OFF=SENS[1];
   for(const k in raw){
-    room.levels[k]=room.levels[k]*0.7+raw[k]*0.3; const v=room.levels[k];
+    room.levels[k]=room.levels[k]*0.5+raw[k]*0.5; const v=room.levels[k];
     const a=room.active[k];
     if(v>ON&&!a) room.active[k]={start:t,peak:v};
-    else if(a){a.peak=Math.max(a.peak,v); if(v<OFF){const dur=t-a.start; if(dur>300) addIndicio(k,a.peak,dur); delete room.active[k]}}
+    else if(a){a.peak=Math.max(a.peak,v); if(v<OFF){const dur=t-a.start; if(dur>200) addIndicio(k,a.peak,dur); delete room.active[k]}}
   }
   drawBars();
 }
