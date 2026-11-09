@@ -353,7 +353,7 @@ function load(){try{const r=localStorage.getItem('nuance_v1');if(!r)return null;
   if(!s.settings.site) s.settings.site='https://mateusdesleal-ops.github.io/Nuance/';
   s.interviews.forEach(i=>i.competencias.forEach(c=>{if(c.nivel===undefined){c.nivel=c.nota>=4?'tem':c.nota===3?'melhorar':c.nota>0?'nao':null;c.sug=c.sug||null}}));return s}catch(e){return null}}
 function save(){try{localStorage.setItem('nuance_v1',JSON.stringify(S))}catch(e){}}
-function cur(){return S.interviews.find(i=>i.id===curId)}
+function cur(){return S.interviews.find(i=>i.id===curId)||(candRoom&&candRoom.id===curId?candRoom:null)}
 
 /* ---------- utils ---------- */
 const $ = s=>document.querySelector(s);
@@ -406,6 +406,7 @@ window.addEventListener('hashchange',()=>{applyMode();go(isCand()?'candidato':'h
 function go(v,id){
   if(isCand()&&!CAND_VIEWS.includes(v)) v='candidato';
   if(room&&v!=='sala') stopRoom();
+  if(typeof candRT!=='undefined'&&candRT&&v!=='candsala') candStop();
   view=v; if(id) curId=id;
   document.querySelectorAll('nav.main button').forEach(b=>b.classList.toggle('on',b.dataset.go===v));
   window.scrollTo(0,0);
@@ -533,7 +534,7 @@ function vConvite(){
     <div class="card stack" style="align-items:flex-start">
       <span class="small muted">Código da sala de ${esc(i.candidato)}</span>
       <div class="code">${esc(i.code)}</div>
-      <div class="row"><button class="btn sm" id="cCode">${icon('copy')} Copiar código</button></div>
+      <div class="row"><button class="btn sm" id="cCode">${icon('copy')} Copiar código</button><span class="pill gray" id="onSt">Publicando sala online…</span></div>
       <hr class="s" style="width:100%">
       <div class="row" style="width:100%"><button class="btn dark" data-go="sala" data-id="${i.id}">Abrir sala do recrutador</button><button class="btn ghost" id="cTest">Ver como candidato</button></div>
     </div>
@@ -541,6 +542,7 @@ function vConvite(){
   </div>`;
   $('#cCode').onclick=()=>copy(i.code);
   $('#cTest').onclick=()=>{location.hash='entrar'};
+  publishRoom(i).then(()=>{const p=$('#onSt');if(p){p.className='pill ok';p.textContent='Sala online ativa por 3 dias'}}).catch(()=>{const p=$('#onSt');if(p){p.className='pill warn';p.textContent='Sala só local: use pelo link do site'}});
   const m=$('#cMsg'); if(m) m.onclick=()=>copy(msg);
 }
 
@@ -560,14 +562,21 @@ function vCandidato(){
   const goNext=()=>{
     let v=inp.value.trim().toUpperCase().replace(/\s/g,''); if(v&&!v.startsWith('NU-'))v='NU-'+v.replace(/^NU/,'');
     if(!v){$('#cErr').textContent='Digite o código.';return}
-    const i=S.interviews.find(x=>x.code===v&&x.status!=='concluida');
-    if(!i){$('#cErr').textContent='Código não encontrado. Confira com o recrutador.';return}
-    curId=i.id; go('aceite');
+    const btn=$('#cGo'); btn.innerHTML='<span class="spin"></span> Procurando sala…'; btn.disabled=true;
+    rpc('nuance_get_room',{p_code:v}).then(r=>{const row=r&&r[0]; if(!row) throw {nf:true};
+      candRoom={id:'remote_'+row.code,remote:true,code:row.code,candidato:row.candidato_nome,vaga:row.vaga,empresa:row.empresa,contato:row.contato,retencao:row.retencao,features:{ekman:row.analise,gravacao:row.gravacao},consent:null};
+      curId=candRoom.id; go('aceite');
+    }).catch(err=>{
+      const i=S.interviews.find(x=>x.code===v&&x.status!=='concluida');
+      if(i){curId=i.id;go('aceite');return}
+      btn.innerHTML='Continuar'; btn.disabled=false;
+      $('#cErr').textContent=err&&err.nf?'Código não encontrado ou sala expirada. Confira com o recrutador.':'Não consegui verificar o código agora. Confira a internet e tente de novo.';
+    });
   };
   $('#cGo').onclick=goNext; inp.addEventListener('keydown',e=>{if(e.key==='Enter')goNext()});
 }
 function vAceite(){
-  const i=cur(); if(!i)return go('candidato'); const st=S.settings;
+  const i=cur(); if(!i)return go('candidato'); const st=i.remote?{empresa:i.empresa,contato:i.contato,retencao:i.retencao}:S.settings;
   const analise=i.features.ekman;
   app.innerHTML=`<div class="card consent">
     <h2>Antes de começar sua entrevista</h2>
@@ -580,11 +589,25 @@ function vAceite(){
     </div>
     <p class="xs muted" style="margin-top:12px">Versão do termo ${CONSENT_VERSION}. Sua escolha fica registrada com data e hora.</p>
   </div>`;
-  const rec=choice=>{i.consent=choice;S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice,at:new Date().toISOString(),versao:CONSENT_VERSION});save();go('candsala')};
+  const rec=async choice=>{
+    if(i.remote){app.querySelectorAll('.consent button').forEach(b=>b.disabled=true);try{await rpc('nuance_set_consent',{p_code:i.code,p_choice:choice,p_versao:CONSENT_VERSION})}catch(e){app.querySelectorAll('.consent button').forEach(b=>b.disabled=false);toast('Não consegui registrar sua escolha. Tente de novo.');return}i.consent=choice;go('candsala');return}
+    i.consent=choice;S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice,at:new Date().toISOString(),versao:CONSENT_VERSION});save();go('candsala')};
   const f=$('#aFull'); if(f)f.onclick=()=>rec('full'); $('#aBasic').onclick=()=>rec('basic');
 }
 function vCandSala(){
   const i=cur(); if(!i)return go('candidato');
+  if(i.remote){
+    app.innerHTML=`<div style="max-width:860px;margin:0 auto" class="stack">
+      <div class="video" style="aspect-ratio:16/9"><video id="rv" autoplay playsinline style="width:100%;height:100%;object-fit:cover;transform:none"></video>
+        <div class="tagtl">${i.features.gravacao?'<span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Gravando</span>':''}${i.consent==='full'?'<span class="pill terra">Análise autorizada</span>':''}</div>
+        <div id="cvWait" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#bbb"><div class="spin" style="width:28px;height:28px;margin-bottom:10px"></div><div>Aguardando o recrutador…</div></div>
+        <div class="self" style="overflow:hidden;padding:0"><video id="lv" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover"></video></div></div>
+      <div class="card row"><div style="flex:1"><b>${esc(i.vaga)}</b><div class="small muted">${esc(i.empresa)} · sala ${esc(i.code)}</div><div class="small" id="cStatus" style="margin-top:4px">Ligando câmera e microfone…</div></div><button class="btn sm" id="cRetry" style="display:none">Tentar de novo</button><button class="btn danger sm" id="cLeave">Sair</button></div>
+    </div>`;
+    $('#cLeave').onclick=()=>confirmBox('Sair da entrevista?','Sair',()=>{candStop();go('candidato')});
+    $('#cRetry').onclick=()=>{$('#cRetry').style.display='none';candStart(i)};
+    candStart(i); return;
+  }
   setTimeout(()=>{const b=$('#backRec');if(b)b.onclick=()=>{curId=i.id;history.replaceState(null,'',location.pathname+location.search);applyMode();go('sala',i.id)}},0);
   app.innerHTML=`<div style="max-width:760px;margin:0 auto" class="stack">
     <div class="video" style="aspect-ratio:16/9"><div class="tagtl"><span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Gravando</span>${i.consent==='full'?'<span class="pill terra">Análise autorizada</span>':''}</div>
@@ -618,9 +641,11 @@ function vSala(){
         <svg class="demo-face breathe" id="demoFace" viewBox="0 0 200 200" aria-label="Candidata (demonstração)" role="img"><circle cx="100" cy="78" r="40" fill="#8E7F74"/><path d="M30 200c6-50 36-74 70-74s64 24 70 74z" fill="#6E625A"/><path id="mouth" d="M84 92 Q100 100 116 92" stroke="#3A322D" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="86" cy="74" r="3.5" fill="#3A322D"/><circle cx="114" cy="74" r="3.5" fill="#3A322D"/><path id="browL" d="M78 64 L92 62" stroke="#3A322D" stroke-width="3" stroke-linecap="round"/><path id="browR" d="M108 62 L122 64" stroke="#3A322D" stroke-width="3" stroke-linecap="round"/></svg>
         <video id="cam" playsinline muted style="display:none;position:absolute;inset:0"></video>
         <div class="caption" id="cap"></div>
-        <div class="self">Você</div>
+        <div id="waitC" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;color:#bbb;text-align:center;padding:20px"><div class="spin" style="width:28px;height:28px;margin-bottom:10px"></div><div>Aguardando ${esc(i.candidato.split(' ')[0])} entrar pelo link do candidato…</div><div class="xs" style="margin-top:6px">Código ${esc(i.code)}</div></div>
+        <div class="self" style="overflow:hidden;padding:0">Você<video id="selfv" autoplay playsinline muted style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video></div>
       </div>
       <div class="row">
+        <button class="btn sm primary" id="bOnline">${icon('cam')} Chamada online</button>
         <button class="btn sm dark" id="bPlay">${icon('play')} Iniciar demonstração</button>
         <button class="btn sm" id="bCam">${icon('cam')} Usar minha câmera</button>
         <button class="btn sm ghost" id="bWide">Ampliar vídeo</button>
@@ -667,6 +692,7 @@ function vSala(){
   const bln=$('#bLiveNow'); if(bln) bln.onclick=()=>liveUpdate(true);
   $('#bPlay').onclick=toggleDemo;
   $('#bCam').onclick=startCam;
+  $('#bOnline').onclick=()=>{if(room.mode==='online'){stopCam();return}startOnline()};
   $('#bEnd').onclick=()=>confirmBox('Encerrar a entrevista?','Encerrar',endInterview);
   const nb=$('#bNextBlk'); if(nb) nb.onclick=()=>{room.block=Math.min(room.block+1,i.competencias.length-1);room.blockT0=room.elapsed;updateBlock();renderRoteiro()};
   const sg=$('#bSug'); if(sg) sg.onclick=suggest;
@@ -857,6 +883,7 @@ async function startCam(){
   } else msg.textContent='';
 }
 function stopCam(){
+  if(room&&room.online) stopOnline();
   if(room.stream)room.stream.getTracks().forEach(t=>t.stop()); room.stream=null;
   if(room.raf)cancelAnimationFrame(room.raf); room.raf=null; room.lm=null;
   if(room.recog){room.recog._stop=true;try{room.recog.stop()}catch(e){}} room.recog=null;
@@ -869,7 +896,7 @@ function startSpeech(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR){$('#camMsg').textContent+=' Transcrição requer o Chrome.';return}
   const r=new SR(); r.lang='pt-BR'; r.continuous=true; r.interimResults=true;
   r.onresult=e=>{let interim='';for(let k=e.resultIndex;k<e.results.length;k++){const res=e.results[k];if(res.isFinal){addLine(room.speaker,res[0].transcript.trim());$('#cap').textContent=res[0].transcript.trim()}else interim+=res[0].transcript}if(interim)addLine(room.speaker,interim,true)};
-  r.onend=()=>{if(!r._stop&&room&&room.mode==='cam'){try{r.start()}catch(e){}}};
+  r.onend=()=>{if(!r._stop&&room&&(room.mode==='cam'||room.mode==='online')){try{r.start()}catch(e){}}};
   try{r.start()}catch(e){} room.recog=r;
 }
 function faceLoop(){
@@ -914,6 +941,123 @@ function scoreEkman(b){
 function stopRoom(){ if(!room)return; clearInterval(room.tick); stopCam(); const i=cur(); if(i){i.duracao=room.elapsed;save()} room=null; }
 function endInterview(){
   const i=cur(); i.duracao=room.elapsed; i.status='concluida'; stopRoom(); save(); go('parecer',i.id);
+}
+
+/* ---------- ONLINE (Supabase + WebRTC) ---------- */
+const SB_URL='https://ouadwftwmwztluysjxol.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im91YWR3ZnR3bXd6dGx1eXNqeG9sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyNDUyMDAsImV4cCI6MjEwOTgyMTIwMH0.wkNVF6brvPQ1VJLmzwtffJ027v-N-6AwTPjHrQ-ls3I';
+const ICE={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']}]};
+let sbP=null, candRoom=null, candRT=null;
+function getSb(){if(!sbP)sbP=import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm').then(m=>m.createClient(SB_URL,SB_KEY,{auth:{persistSession:false}})).catch(e=>{sbP=null;throw e});return sbP}
+function withTimeout(p,ms){return Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error('timeout')),ms))])}
+async function rpc(fn,args){const sb=await withTimeout(getSb(),8000);const {data,error}=await withTimeout(sb.rpc(fn,args),8000);if(error)throw error;return data}
+async function publishRoom(i){await rpc('nuance_upsert_room',{p_code:i.code,p_vaga:i.vaga,p_empresa:S.settings.empresa,p_nome:i.candidato,p_analise:!!i.features.ekman,p_gravacao:!!i.features.gravacao,p_retencao:S.settings.retencao,p_contato:S.settings.contato});i.online=true;save()}
+async function joinChannel(code,onMsg){
+  const sb=await getSb(); const ch=sb.channel('nuance-'+code,{config:{broadcast:{self:false}}});
+  ch.on('broadcast',{event:'sig'},({payload})=>onMsg(payload));
+  await new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error('timeout')),10000);ch.subscribe(st=>{if(st==='SUBSCRIBED'){clearTimeout(t);res()}else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'){clearTimeout(t);rej(new Error(st))}})});
+  return {send:p=>ch.send({type:'broadcast',event:'sig',payload:p}),close:()=>{try{sb.removeChannel(ch)}catch(e){}}};
+}
+function recordConsent(i,choice){if(i.consent===choice)return false;i.consent=choice;S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice,at:new Date().toISOString(),versao:CONSENT_VERSION,online:true});save();return true}
+
+/* recrutador */
+async function startOnline(){
+  const i=cur(), msg=$('#camMsg');
+  if(room.mode==='cam')stopCam();
+  room.running=false; $('#bPlay').innerHTML=icon('play')+' Demonstração';
+  msg.textContent='Conectando ao servidor…';
+  try{await publishRoom(i)}catch(e){msg.textContent='Sem conexão com o servidor. A chamada online funciona pelo link do site (GitHub Pages), não aqui dentro do Claude.';return}
+  try{const r=await rpc('nuance_get_room',{p_code:i.code});const row=r&&r[0];if(row&&row.consent&&!i.consent){recordConsent(i,row.consent);vSala();setTimeout(startOnline,50);return}}catch(e){}
+  try{room.stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:true})}catch(e){msg.textContent='Libere a câmera e o microfone no navegador para entrar na chamada.';return}
+  room.mode='online'; room.speaker='R'; room.online={pc:null,dc:null,sig:null,remote:false};
+  const sv=$('#selfv'); sv.srcObject=room.stream; sv.style.display='block';
+  $('#demoFace').style.display='none'; $('#waitC').style.display='flex';
+  $('#modeTag').textContent='Chamada online'; $('#bOnline').innerHTML=icon('stop')+' Sair da chamada';
+  try{room.online.sig=await joinChannel(i.code,onRecMsg)}catch(e){msg.textContent='Não consegui abrir o canal da sala. Tente de novo.';return}
+  msg.textContent='Sala aberta. Aguardando '+i.candidato.split(' ')[0]+' entrar pelo link do candidato.';
+  room.running=true; startSpeech();
+}
+async function onRecMsg(p){
+  if(!room||room.mode!=='online')return; const i=cur(), o=room.online;
+  if(p.t==='hello'){
+    if(p.consent&&recordConsent(i,p.consent)){room.online=null;try{o.pc&&o.pc.close()}catch(e){}try{o.sig&&o.sig.close()}catch(e){}vSala();setTimeout(startOnline,50);return}
+    if(o.pc&&(o.pc.connectionState==='connected'||Date.now()-o.createdAt<12000))return;
+    if(o.pc){try{o.pc.close()}catch(e){}}
+    const pc=new RTCPeerConnection(ICE); o.pc=pc; o.remote=false; o.createdAt=Date.now();
+    room.stream.getTracks().forEach(t=>pc.addTrack(t,room.stream));
+    const dc=pc.createDataChannel('nuance'); o.dc=dc;
+    dc.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}if(m.t==='tx'&&m.text){if(m.final){addLine('C',m.text);$('#cap').textContent=i.candidato.split(' ')[0]+': '+m.text}else addLine('C',m.text,true)}};
+    pc.onicecandidate=e=>{if(e.candidate)o.sig.send({t:'ice',to:'C',c:e.candidate.toJSON()})};
+    pc.ontrack=e=>{const v=$('#cam');if(v.srcObject!==e.streams[0]){v.srcObject=e.streams[0];v.muted=false;v.style.transform='none';v.style.display='block';v.play().catch(()=>{});$('#waitC').style.display='none';o.remote=true;$('#camMsg').textContent='Conectado com '+i.candidato.split(' ')[0]+'.';startEkmanOnRemote()}};
+    pc.onconnectionstatechange=()=>{if(pc.connectionState==='failed'){$('#camMsg').textContent='A conexão falhou. A rede pode estar bloqueando a chamada; tente com uma das pessoas fora da rede da empresa (4G).'}if(pc.connectionState==='disconnected'||pc.connectionState==='closed'){$('#waitC').style.display='flex';o.remote=false}};
+    const off=await pc.createOffer(); await pc.setLocalDescription(off); o.sig.send({t:'offer',sdp:pc.localDescription.toJSON()});
+  }else if(p.t==='answer'&&o.pc){try{await o.pc.setRemoteDescription(p.sdp)}catch(e){}}
+  else if(p.t==='ice'&&p.to==='R'&&o.pc){try{await o.pc.addIceCandidate(p.c)}catch(e){}}
+  else if(p.t==='bye'){$('#waitC').style.display='flex';$('#camMsg').textContent=i.candidato.split(' ')[0]+' saiu da sala.';o.remote=false}
+}
+async function startEkmanOnRemote(){
+  const i=cur(); if(!(i.features.ekman&&i.consent==='full')||room.lm)return;
+  const msg=$('#camMsg');
+  try{
+    const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+    const fs=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+    room.lm=await vision.FaceLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',delegate:'GPU'},outputFaceBlendshapes:true,runningMode:'VIDEO',numFaces:1});
+    msg.textContent+=' Leitura de expressões ativa.'; faceLoop();
+  }catch(e){msg.textContent+=' Não foi possível carregar a leitura de expressões.'}
+}
+function stopOnline(){
+  if(!room||!room.online)return; const o=room.online;
+  try{o.sig&&o.sig.send({t:'bye'})}catch(e){}
+  try{o.pc&&o.pc.close()}catch(e){} try{o.sig&&o.sig.close()}catch(e){}
+  room.online=null;
+  const sv=$('#selfv'); if(sv){sv.srcObject=null;sv.style.display='none'}
+  const w=$('#waitC'); if(w)w.style.display='none';
+  const b=$('#bOnline'); if(b)b.innerHTML=icon('cam')+' Chamada online';
+}
+
+/* candidato */
+async function candStart(i){
+  const st=$('#cStatus'); candStop();
+  const rt=candRT={pc:null,sig:null,stream:null,recog:null,helloT:null,dc:null};
+  try{rt.stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:true})}catch(e){st.textContent='Libere a câmera e o microfone no navegador e toque em "Tentar de novo".';$('#cRetry').style.display='';return}
+  if(candRT!==rt){rt.stream.getTracks().forEach(t=>t.stop());return}
+  const lv=$('#lv'); lv.srcObject=rt.stream;
+  try{rt.sig=await joinChannel(i.code,p=>onCandMsg(i,rt,p))}catch(e){st.textContent='Não consegui conectar à sala. Verifique a internet e tente de novo.';$('#cRetry').style.display='';return}
+  st.textContent='Você está na sala. Aguardando o recrutador…';
+  const hello=()=>{if(!rt.pc||rt.pc.connectionState!=='connected')rt.sig.send({t:'hello',consent:i.consent})};
+  hello(); rt.helloT=setInterval(hello,3000);
+  if(i.features.gravacao) candSpeech(rt);
+}
+async function onCandMsg(i,rt,p){
+  if(candRT!==rt)return;
+  if(p.t==='offer'){
+    if(rt.pc){try{rt.pc.close()}catch(e){}}
+    const pc=new RTCPeerConnection(ICE); rt.pc=pc;
+    rt.stream.getTracks().forEach(t=>pc.addTrack(t,rt.stream));
+    pc.ondatachannel=e=>{rt.dc=e.channel};
+    pc.onicecandidate=e=>{if(e.candidate)rt.sig.send({t:'ice',to:'R',c:e.candidate.toJSON()})};
+    pc.ontrack=e=>{const v=$('#rv');if(v&&v.srcObject!==e.streams[0]){v.srcObject=e.streams[0];v.play().catch(()=>{});$('#cvWait').style.display='none';$('#cStatus').textContent='Conectado com o recrutador.'}};
+    pc.onconnectionstatechange=()=>{const s=$('#cStatus');if(!s)return;if(pc.connectionState==='failed')s.textContent='A conexão falhou. Se estiver na rede de uma empresa, tente pelo 4G.';if(pc.connectionState==='disconnected')s.textContent='Conexão interrompida. Tentando reconectar…'};
+    await pc.setRemoteDescription(p.sdp); const ans=await pc.createAnswer(); await pc.setLocalDescription(ans);
+    rt.sig.send({t:'answer',sdp:pc.localDescription.toJSON()});
+  }else if(p.t==='ice'&&p.to==='C'&&rt.pc){try{await rt.pc.addIceCandidate(p.c)}catch(e){}}
+  else if(p.t==='bye'){const w=$('#cvWait');if(w)w.style.display='flex';const s=$('#cStatus');if(s)s.textContent='O recrutador saiu da chamada.';const v=$('#rv');if(v)v.srcObject=null}
+}
+function candSpeech(rt){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR)return;
+  const r=new SR(); r.lang='pt-BR'; r.continuous=true; r.interimResults=true; rt.recog=r;
+  const send=(text,final)=>{if(rt.dc&&rt.dc.readyState==='open')rt.dc.send(JSON.stringify({t:'tx',text,final}))};
+  r.onresult=e=>{let interim='';for(let k=e.resultIndex;k<e.results.length;k++){const res=e.results[k];if(res.isFinal)send(res[0].transcript.trim(),true);else interim+=res[0].transcript}if(interim)send(interim,false)};
+  r.onend=()=>{if(candRT===rt&&!r._stop){try{r.start()}catch(e){}}};
+  try{r.start()}catch(e){}
+}
+function candStop(){
+  const rt=candRT; if(!rt)return; candRT=null;
+  clearInterval(rt.helloT);
+  try{rt.sig&&rt.sig.send({t:'bye'})}catch(e){}
+  if(rt.recog){rt.recog._stop=true;try{rt.recog.stop()}catch(e){}}
+  try{rt.pc&&rt.pc.close()}catch(e){} try{rt.sig&&rt.sig.close()}catch(e){}
+  if(rt.stream)rt.stream.getTracks().forEach(t=>t.stop());
 }
 
 /* ---------- PARECER ---------- */

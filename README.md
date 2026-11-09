@@ -27,10 +27,20 @@ python3 -m http.server 8080
 
 Cada função pode ser ligada ou desligada por entrevista.
 
+## Teste online (dois computadores)
+
+1. Recrutador: abra o site, crie a entrevista (ou abra a sala) e clique em **Chamada online**.
+2. Candidato: abra o link `…/Nuance/#entrar` no computador dele, digite o código e aceite o termo.
+3. A chamada conecta direto entre os navegadores (WebRTC). A transcrição do candidato é feita no computador dele e enviada ao recrutador.
+
+Backend: Supabase (projeto `nuance`, região São Paulo). A tabela `rooms` guarda só código, vaga, empresa, primeiro nome e o aceite; é acessada apenas por três funções (`nuance_upsert_room`, `nuance_get_room`, `nuance_set_consent`). Salas expiram em 3 dias. Transcrição, indícios e parecer continuam no navegador do recrutador.
+
+Use fone de ouvido do lado do recrutador, para a transcrição dele não captar a voz do candidato. Redes corporativas podem bloquear a conexão direta; sem servidor TURN, teste com uma das pontas fora da rede da empresa.
+
 ## Limitações do protótipo
 
 - Dados ficam no `localStorage` do navegador.
-- Recrutador e candidato rodam no mesmo aparelho; chamada real entre duas pessoas exige servidor de vídeo (WebRTC, ex.: LiveKit ou Daily) e backend.
+- Sem login de recrutador: quem souber o código pode sobrescrever a sala. Sem servidor TURN, algumas redes bloqueiam a chamada.
 - As funções de IA usam a capacidade de IA do Claude quando aberto como artifact; fora dele, usam respostas padrão. Em produção, trocar por chamada a uma API de LLM no backend.
 
 ## Cuidados
