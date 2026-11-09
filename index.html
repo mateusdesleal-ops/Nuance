@@ -364,7 +364,7 @@ function load(){try{const r=localStorage.getItem('nuance_v1');if(!r)return null;
   if(!s.templates||!s.templates.length) s.templates=[defaultTemplate()];
   if(!s.vagas){s.vagas=[];s.interviews.forEach(i=>{let v=s.vagas.find(x=>x.nome===i.vaga);if(!v){v={id:'v'+(s.vagas.length+1)+'_'+Date.now(),nome:i.vaga,descricao:i.descricao||'',competencias:i.competencias.map(c=>({nome:c.nome,perguntas:[...(c.perguntas||[])]})),etapas:i.etapas||JSON.parse(JSON.stringify(DEFAULT_ETAPAS)),features:{...i.features},templateId:i.templateId||'t_padrao',createdAt:i.createdAt||Date.now()};s.vagas.push(v)}i.vagaId=v.id})}
   if(!s.settings.site) s.settings.site='https://mateusdesleal-ops.github.io/Nuance/';
-  s.interviews.forEach(i=>{if(i.features&&i.features.rapport===undefined)i.features.rapport=true});
+  [...s.interviews,...s.vagas].forEach(o=>{if(o.features)FEATURES.forEach(f=>{if(o.features[f[0]]===undefined)o.features[f[0]]=true})});
   s.interviews.forEach(i=>i.competencias.forEach(c=>{if(c.nivel===undefined){c.nivel=c.nota>=4?'tem':c.nota===3?'melhorar':c.nota>0?'nao':null;c.sug=c.sug||null}}));return s}catch(e){return null}}
 function save(){try{localStorage.setItem('nuance_v1',JSON.stringify(S))}catch(e){}}
 function cur(){return S.interviews.find(i=>i.id===curId)||(candRoom&&candRoom.id===curId?candRoom:null)}
@@ -692,7 +692,7 @@ function vSala(){
   const i=cur(); if(!i)return go('home');
   const F=i.features; const ekmanOn=F.ekman&&i.consent==='full';
   if(i.status==='agendada'){i.status='em_andamento';save()}
-  if(room){clearInterval(room.tick);stopCam()}
+  if(room){clearInterval(room.tick);clearInterval(room.consentPoll);stopCam()}
   room={t0:Date.now(),elapsed:i.duracao||0,running:false,mode:'demo',demoIdx:0,demoT:0,tick:null,block:0,blockT0:0,levels:Object.fromEntries(Object.keys(EMO).map(k=>[k,0])),speaker:'C',stream:null,recog:null,lm:null,raf:null,active:{},lastEv:{},suggestion:null,sugLoading:false,liveOn:false,liveCount:0,liveLoading:false};
 
   app.innerHTML=`
@@ -703,7 +703,7 @@ function vSala(){
     <span class="pill gray">Total <span class="timer" id="totTime">00:00</span></span>
     <button class="btn sm primary" id="bEnd">${icon('stop')} Encerrar</button>
   </div>
-  ${!i.consent?`<div class="card row" style="margin-bottom:14px;background:var(--warn-l);border-color:#F0D9A8"><div style="flex:1"><b>O candidato ainda não aceitou o termo.</b><div class="small">No protótipo, você pode simular a escolha dele.</div></div><button class="btn sm" id="simFull">Simular: autorizou</button><button class="btn sm" id="simBasic">Simular: só gravação</button></div>`:''}
+  ${!i.consent?`<div class="card row" style="margin-bottom:14px;background:var(--warn-l);border-color:#F0D9A8"><div style="flex:1"><b>Aguardando o candidato aceitar o termo pelo link.</b><div class="small" id="consWait">Verificando automaticamente…</div></div><button class="btn sm" id="consCheck">Verificar agora</button><button class="btn sm ghost" id="simFull">Simular: autorizou</button><button class="btn sm ghost" id="simBasic">Simular: só gravação</button></div>`:''}
   <div class="room" id="roomGrid">
     <div class="stack">
       <div class="video" id="vid">
@@ -773,6 +773,18 @@ function vSala(){
   const bn=$('#bNote'); if(bn) bn.onclick=()=>modal(`<h3>Nota rápida</h3><label class="sr" for="noteIn">Nota</label><textarea id="noteIn" placeholder="Ex.: confirmar datas do último emprego"></textarea><p id="noteErr" class="small" style="color:#A3301E;min-height:18px"></p><div class="row"><span class="spacer"></span><button class="btn ghost" data-m="no">Cancelar</button><button class="btn primary" data-m="ok">Salvar</button></div>`,b=>{const ta=b.querySelector('#noteIn');ta.focus();ta.oninput=()=>b.querySelector('#noteErr').textContent='';b.querySelector('[data-m=no]').onclick=closeModal;b.querySelector('[data-m=ok]').onclick=()=>{if(!ta.value.trim()){b.querySelector('#noteErr').textContent='Escreva a nota primeiro.';return}addMark('Nota',ta.value.trim());closeModal()}});
   const spk=$('#bSpk'); if(spk) spk.onclick=()=>{room.speaker=room.speaker==='C'?'R':'C';spk.textContent='Falando: '+(room.speaker==='C'?'candidato':'você')};
   room.tick=setInterval(tick,250);
+  if(!i.consent){
+    const check=async manual=>{
+      if(!room||view!=='sala'||curId!==i.id||i.consent)return;
+      try{const r=await rpc('nuance_get_room',{p_code:i.code});const row=r&&r[0];
+        if(row&&row.consent){const wasOnline=room.mode==='online';recordConsent(i,row.consent);toast(i.candidato.split(' ')[0]+(row.consent==='full'?' aceitou o termo e autorizou a análise':' aceitou o termo (sem análise de expressões)'));if(wasOnline){const o=room.online;room.online=null;try{o&&o.pc&&o.pc.close()}catch(e){}try{o&&o.sig&&o.sig.close()}catch(e){}vSala();setTimeout(startOnline,50)}else vSala();return}
+        const w=$('#consWait');if(w)w.textContent=row?'Ainda não aceitou. Verificando a cada poucos segundos…':'Sala ainda não publicada online. Abra o convite ou clique em "Chamada online".';
+        if(manual)toast('O candidato ainda não aceitou');
+      }catch(e){const w=$('#consWait');if(w)w.textContent='Sem conexão com o servidor aqui. Pelo link do site a verificação funciona.'}
+    };
+    room.consentPoll=setInterval(()=>check(false),4000); check(false);
+    const cc=$('#consCheck'); if(cc) cc.onclick=()=>check(true);
+  }
 }
 function now(){return room?room.elapsed:0}
 function tick(){
@@ -1035,7 +1047,7 @@ function scoreEkman(b){
   }
   drawBars();
 }
-function stopRoom(){ if(!room)return; clearInterval(room.tick); stopCam(); const i=cur(); if(i){i.duracao=room.elapsed;save()} room=null; }
+function stopRoom(){ if(!room)return; clearInterval(room.tick); clearInterval(room.consentPoll); stopCam(); const i=cur(); if(i){i.duracao=room.elapsed;save()} room=null; }
 function endInterview(){
   const i=cur(); i.duracao=room.elapsed; i.status='concluida'; stopRoom(); save(); go('parecer',i.id);
 }
