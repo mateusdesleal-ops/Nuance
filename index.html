@@ -287,12 +287,21 @@ const FEATURES = [
   ['devolutiva','Devolutiva ao candidato','Rascunho de feedback respeitoso','depois']
 ];
 const DEFAULT_COMPS = [
-  {nome:'Comunicação',perguntas:['Conte um pouco da sua trajetória profissional.','Como você adapta sua comunicação para públicos diferentes?']},
+  {nome:'Comunicação',perguntas:['Me conte de uma situação em que você precisou explicar algo complexo para alguém. Como fez?','Como você adapta sua comunicação para públicos diferentes?']},
   {nome:'Gestão de conflitos',perguntas:['Me conte de um conflito que você teve com um gestor.','Se houvesse uma discordância sobre o perfil de uma vaga, como você agiria?']},
   {nome:'Orientação a resultados',perguntas:['Qual foi o resultado concreto dessa ação?','Que indicador você mais se orgulha de ter melhorado?']},
   {nome:'Organização e planejamento',perguntas:['Como você organiza sua rotina com muitas vagas abertas?','Como define prioridades quando tudo parece urgente?']},
   {nome:'Liderança',perguntas:['Já liderou alguém diretamente?','Como você desenvolve pessoas menos experientes?']}
 ];
+const DEFAULT_ETAPAS = {
+  pessoal:['Me conte um pouco sobre você: quem é você além do currículo?','O que você gosta de fazer no seu tempo livre?','O que te motiva no trabalho?','Como você se descreveria em três palavras?'],
+  formacao:['Me conte sobre a sua formação. Por que escolheu esse curso?','Fez alguma especialização ou curso recente? O que aprendeu de mais útil?','Como você se mantém atualizado na área?'],
+  experiencia:['Me conte sua trajetória profissional, da primeira experiência até hoje.','Quais eram suas principais responsabilidades no último emprego?','Qual experiência mais te desenvolveu? Por quê?','O que te fez buscar uma nova oportunidade?'],
+  livre:['Tem alguma pergunta sobre a vaga ou a empresa?','Há algo que não perguntei e que você gostaria de contar?','Explique os próximos passos do processo e o prazo de retorno.']
+};
+const ETAPA_INFO=[['pessoal','Pessoal',5],['formacao','Formação',5],['experiencia','Experiências',8]];
+function blocks(i){const e=i.etapas||DEFAULT_ETAPAS;const n=Math.max(1,i.competencias.length);
+  return [...ETAPA_INFO.map(([k,nome,min])=>({nome,perguntas:e[k]||[],min})),...i.competencias.map(c=>({nome:c.nome,grupo:'Competências',perguntas:c.perguntas,min:Math.max(2,Math.round(20/n))})),{nome:'Livre',perguntas:e.livre||[],min:5}]}
 const MARKS = ['Hesitou','Se animou','Resposta vaga','Exemplo forte','Mudou de postura','Evitou o tema'];
 const CONSENT_VERSION = '1.0';
 const PARECER_FINAL = ['Aprovado','Aprovado com ressalvas','Não recomendado','Em análise'];
@@ -451,7 +460,7 @@ function icon(n){const p={plus:'M12 5v14M5 12h14',key:'M15 7a3 3 0 1 1-3 3M12 10
 /* ---------- NOVA ENTREVISTA ---------- */
 let draft=null;
 function vNova(){
-  if(!draft) draft={candidato:'',vaga:'',descricao:'',curriculo:'',competencias:JSON.parse(JSON.stringify(DEFAULT_COMPS)),features:Object.fromEntries(FEATURES.map(f=>[f[0],true])),cv:null};
+  if(!draft) draft={candidato:'',vaga:'',descricao:'',curriculo:'',competencias:JSON.parse(JSON.stringify(DEFAULT_COMPS)),etapas:JSON.parse(JSON.stringify(DEFAULT_ETAPAS)),features:Object.fromEntries(FEATURES.map(f=>[f[0],true])),cv:null};
   const grp=(k,t)=>`<div class="card"><h3 style="margin-bottom:6px">${t}</h3>${FEATURES.filter(f=>f[3]===k).map(f=>`<div class="tg"><div><b style="font-size:14px">${f[1]}</b><div class="xs muted">${f[2]}</div></div><label class="switch"><input type="checkbox" data-ft="${f[0]}" ${draft.features[f[0]]?'checked':''} aria-label="${f[1]}"><span></span></label></div>`).join('')}</div>`;
   app.innerHTML=`
   <div class="row" style="margin-bottom:16px"><h1>Nova entrevista</h1></div>
@@ -464,9 +473,16 @@ function vNova(){
         <div class="row"><button class="btn sm" id="bRoteiro">${icon('spark')} Gerar roteiro com IA</button><span class="xs muted">Monta competências e perguntas a partir da vaga</span></div>
       </div>
       <div class="card stack">
-        <div class="row"><h3>Roteiro por competência</h3><span class="spacer"></span><button class="btn sm ghost" id="bAddComp">+ Competência</button></div>
+        <h3>Ordem da entrevista</h3>
+        <p class="xs muted">1. Pessoal → 2. Formação → 3. Experiências → 4. Competências → 5. Livre. Uma pergunta por linha.</p>
+        ${[['pessoal','1. Pessoal'],['formacao','2. Formação'],['experiencia','3. Experiências']].map(([k,t])=>`<div><label class="f" for="et_${k}">${t}</label><textarea id="et_${k}" data-et="${k}" style="min-height:90px;font-size:14px">${esc((draft.etapas[k]||[]).join('\n'))}</textarea></div>`).join('')}
+        <p class="xs muted">No bloco pessoal, foque em quem a pessoa é e no que a motiva. Evite perguntas sobre estado civil, filhos, religião ou saúde (Lei 9.029/95).</p>
+      </div>
+      <div class="card stack">
+        <div class="row"><h3>4. Competências</h3><span class="spacer"></span><button class="btn sm ghost" id="bAddComp">+ Competência</button></div>
         <div id="comps"></div>
       </div>
+      <div class="card stack"><label class="f" for="et_livre" style="font-size:16px;color:var(--ink);font-weight:700">5. Livre</label><textarea id="et_livre" data-et="livre" style="min-height:80px;font-size:14px">${esc((draft.etapas.livre||[]).join('\n'))}</textarea></div>
       <div class="card stack">
         <div><label class="f" for="fCv">Currículo</label><textarea id="fCv" placeholder="Cole o texto do currículo ou envie um arquivo .txt">${esc(draft.curriculo)}</textarea></div>
         <div class="row"><label class="btn sm ghost" style="cursor:pointer">Enviar .txt<input type="file" accept=".txt,text/plain" id="fCvFile" class="sr"></label><button class="btn sm" id="bCv">${icon('spark')} Analisar currículo</button></div>
@@ -474,7 +490,7 @@ function vNova(){
       </div>
     </div>
     <div class="stack">
-      <div class="card"><label class="f" for="fTpl">Modelo de parecer</label><select id="fTpl">${S.templates.map(t=>`<option value="${t.id}" ${(draft.templateId||(S.templates.find(x=>x.padrao)||{}).id)===t.id?'selected':''}>${esc(t.nome)}${t.padrao?' (padrão)':''}</option>`).join('')}</select><p class="xs muted" style="margin-top:6px">A IA preenche os tópicos desse modelo durante a entrevista. <button class="btn sm ghost" data-go="modelos" style="margin-left:4px">Gerenciar modelos</button></p></div>
+      <div class="card"><label class="f" for="fTpl">Modelo de parecer</label><select id="fTpl">${S.templates.map(t=>`<option value="${t.id}" ${(draft.templateId||(S.templates.find(x=>x.padrao)||{}).id)===t.id?'selected':''}>${esc(t.nome)}${t.padrao&&!/padrão/i.test(t.nome)?' (padrão)':''}</option>`).join('')}</select><p class="xs muted" style="margin-top:6px">A IA preenche os tópicos desse modelo durante a entrevista. <button class="btn sm ghost" data-go="modelos" style="margin-left:4px">Gerenciar modelos</button></p></div>
       <p class="small muted">Escolha o que usar nesta entrevista. O que estiver desligado não aparece na sala.</p>
       ${grp('antes','Antes')}${grp('durante','Durante')}${grp('depois','Depois')}
       <button class="btn primary" id="bCriar" style="width:100%">Criar entrevista e gerar código</button>
@@ -483,6 +499,7 @@ function vNova(){
   const sync=()=>{draft.candidato=$('#fCand').value;draft.vaga=$('#fVaga').value;draft.descricao=$('#fDesc').value;draft.curriculo=$('#fCv').value};
   ['#fCand','#fVaga','#fDesc','#fCv'].forEach(s=>$(s).addEventListener('input',sync));
   $('#fTpl').addEventListener('change',e=>draft.templateId=e.target.value);
+  app.querySelectorAll('[data-et]').forEach(t=>t.addEventListener('input',()=>{draft.etapas[t.dataset.et]=t.value.split('\n').map(x=>x.trim()).filter(Boolean)}));
   app.querySelectorAll('[data-ft]').forEach(c=>c.addEventListener('change',()=>{draft.features[c.dataset.ft]=c.checked}));
   renderComps(); renderCv();
   $('#fCvFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{$('#fCv').value=t;sync();toast('Currículo carregado')})});
@@ -507,7 +524,7 @@ function vNova(){
   };
   $('#bCriar').onclick=()=>{
     sync(); if(!draft.candidato.trim()||!draft.vaga.trim()){toast('Preencha candidato e vaga');return}
-    const iv={id:'i'+Date.now(),code:genCode(),candidato:draft.candidato.trim(),vaga:draft.vaga.trim(),descricao:draft.descricao,curriculo:draft.curriculo,competencias:draft.competencias.filter(c=>c.nome.trim()).map(c=>({nome:c.nome,perguntas:c.perguntas.filter(q=>q.trim()),status:'pendente',nivel:null,sug:null})),features:{...draft.features},cv:draft.cv,templateId:draft.templateId||(S.templates.find(x=>x.padrao)||S.templates[0]).id,secoes:{},parecerFinal:'',status:'agendada',consent:null,transcript:[],marks:[],indicios:[],parecer:'',devolutiva:'',pares:[],createdAt:Date.now(),duracao:0,asked:[]};
+    const iv={id:'i'+Date.now(),code:genCode(),candidato:draft.candidato.trim(),vaga:draft.vaga.trim(),descricao:draft.descricao,curriculo:draft.curriculo,competencias:draft.competencias.filter(c=>c.nome.trim()).map(c=>({nome:c.nome,perguntas:c.perguntas.filter(q=>q.trim()),status:'pendente',nivel:null,sug:null})),features:{...draft.features},etapas:draft.etapas||JSON.parse(JSON.stringify(DEFAULT_ETAPAS)),cv:draft.cv,templateId:draft.templateId||(S.templates.find(x=>x.padrao)||S.templates[0]).id,secoes:{},parecerFinal:'',status:'agendada',consent:null,transcript:[],marks:[],indicios:[],parecer:'',devolutiva:'',pares:[],createdAt:Date.now(),duracao:0,asked:[]};
     S.interviews.push(iv); save(); draft=null; go('convite',iv.id);
   };
 }
@@ -626,12 +643,12 @@ function vSala(){
   if(i.status==='agendada'){i.status='em_andamento';save()}
   if(room){clearInterval(room.tick);stopCam()}
   room={t0:Date.now(),elapsed:i.duracao||0,running:false,mode:'demo',demoIdx:0,demoT:0,tick:null,block:0,blockT0:0,levels:Object.fromEntries(Object.keys(EMO).map(k=>[k,0])),speaker:'C',stream:null,recog:null,lm:null,raf:null,active:{},lastEv:{},suggestion:null,sugLoading:false,liveOn:false,liveCount:0,liveLoading:false};
-  const blocks=i.competencias.length||1, blockTarget=Math.round(40*60/blocks);
+
   app.innerHTML=`
   <div class="room-top">
     <div style="flex:1;min-width:200px"><h2>${esc(i.candidato)}</h2><div class="small muted">${esc(i.vaga)} · ${esc(i.code)}</div></div>
     ${i.consent?`<span class="pill ${i.consent==='full'?'ok':'blue'}">${i.consent==='full'?'Análise autorizada':'Análise não autorizada'}</span>`:'<span class="pill warn">Aguardando aceite</span>'}
-    ${F.cronometro&&i.competencias.length?`<span class="pill gray">Bloco <span id="blkName"></span> · <span class="timer" id="blkTime">00:00</span> / ${fmt(blockTarget)}</span><button class="btn sm ghost" id="bNextBlk">${icon('next')} Próximo bloco</button>`:''}
+    ${F.cronometro?`<span class="pill gray">Bloco <span id="blkName"></span> · <span class="timer" id="blkTime">00:00</span> / <span id="blkTarget"></span></span><button class="btn sm ghost" id="bNextBlk">${icon('next')} Próximo bloco</button>`:''}
     <span class="pill gray">Total <span class="timer" id="totTime">00:00</span></span>
     <button class="btn sm primary" id="bEnd">${icon('stop')} Encerrar</button>
   </div>
@@ -673,8 +690,8 @@ function vSala(){
         :`<div class="panel"><div class="panel-h"><h3>Indícios Ekman</h3></div><p class="small muted">${i.consent==='basic'?'O candidato não autorizou a análise de expressões. A entrevista segue normalmente, sem esse recurso.':'Disponível após o candidato autorizar no termo de entrada.'}</p></div>`):''}
       </div>
       <div class="tabp" data-tabp="rot">
-      ${F.checklist?`<div class="panel"><div class="panel-h"><h3>Competências</h3><span class="spacer"></span><span class="xs muted">toque para mudar</span></div><div id="cl"></div></div>`:''}
       ${F.roteiro?`<div class="panel"><div class="panel-h"><h3>Roteiro</h3><span class="spacer"></span><span class="xs muted" id="rtName"></span></div><div id="rt"></div></div>`:''}
+      ${F.checklist?`<div class="panel"><div class="panel-h"><h3>Competências</h3><span class="spacer"></span><span class="xs muted">toque para mudar</span></div><div id="cl"></div></div>`:''}
       ${i.cv&&F.curriculo?`<div class="panel"><div class="panel-h"><h3>Pontos do currículo</h3></div><ul class="small" style="margin:0;padding-left:18px">${[...(i.cv.confirmar||[]),...(i.cv.lacunas||[])].map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`:''}
       </div>
       <div class="tabp" data-tabp="par">
@@ -698,7 +715,7 @@ function vSala(){
   $('#bCam').onclick=startCam;
   $('#bOnline').onclick=()=>{if(room.mode==='online'){stopCam();return}startOnline()};
   $('#bEnd').onclick=()=>confirmBox('Encerrar a entrevista?','Encerrar',endInterview);
-  const nb=$('#bNextBlk'); if(nb) nb.onclick=()=>{room.block=Math.min(room.block+1,i.competencias.length-1);room.blockT0=room.elapsed;updateBlock();renderRoteiro()};
+  const nb=$('#bNextBlk'); if(nb) nb.onclick=()=>setBlock(room.block+1);
   const sg=$('#bSug'); if(sg) sg.onclick=()=>{exitRapport();suggest()};
   room.iceIdx=0; const bi=$('#bIce'); if(bi) bi.onclick=nextIce;
   app.querySelectorAll('[data-mk]').forEach(b=>b.onclick=()=>addMark(b.dataset.mk));
@@ -837,14 +854,17 @@ function renderChecklist(){
   box.innerHTML=i.competencias.map((c,ci)=>`<button class="cl ${c.status==='ok'?'ok':c.status==='andamento'?'and':''}" data-cl="${ci}"><span class="st">${c.status==='ok'?'✓':c.status==='andamento'?'•':''}</span><span style="flex:1">${esc(c.nome)}</span><span class="xs muted">${c.status==='ok'?'coberta':c.status==='andamento'?'em andamento':'pendente'}</span></button>`).join('');
   box.querySelectorAll('[data-cl]').forEach(b=>b.onclick=()=>{const c=i.competencias[+b.dataset.cl];c.status=c.status==='pendente'?'andamento':c.status==='andamento'?'ok':'pendente';save();renderChecklist()});
 }
+function setBlock(k){const i=cur();const B=blocks(i);k=Math.max(0,Math.min(k,B.length-1));if(k===room.block)return;room.block=k;room.blockT0=room.elapsed;updateBlock();renderRoteiro()}
 function renderRoteiro(){
-  const box=$('#rt'); if(!box)return; const i=cur(); const c=i.competencias[room.block]; if(!c){box.innerHTML='';return}
-  $('#rtName').textContent=c.nome;
-  box.innerHTML=c.perguntas.map(q=>`<div class="qitem ${i.asked.includes(q)?'done':''}"><span style="flex:1">${esc(q)}</span><button class="btn sm ghost" data-ask="${esc(q)}">${i.asked.includes(q)?'Feita':'Marcar'}</button></div>`).join('');
+  const box=$('#rt'); if(!box)return; const i=cur(); const B=blocks(i); const c=B[room.block]; if(!c){box.innerHTML='';return}
+  $('#rtName').textContent=(c.grupo?c.grupo+' · ':'')+c.nome;
+  const nav=`<div class="row" style="gap:6px;margin-bottom:10px">${B.map((b,k)=>`<button class="btn sm ${k===room.block?'dark':'ghost'}" data-blk="${k}" title="${esc((b.grupo?b.grupo+' · ':'')+b.nome)}">${k+1}. ${esc(b.nome)}</button>`).join('')}</div>`;
+  box.innerHTML=nav+c.perguntas.map(q=>`<div class="qitem ${i.asked.includes(q)?'done':''}"><span style="flex:1">${esc(q)}</span><button class="btn sm ghost" data-ask="${esc(q)}">${i.asked.includes(q)?'Feita':'Marcar'}</button></div>`).join('');
   box.querySelectorAll('[data-ask]').forEach(b=>b.onclick=()=>{const q=b.dataset.ask;if(!i.asked.includes(q))i.asked.push(q);else i.asked=i.asked.filter(x=>x!==q);save();renderRoteiro()});
+  box.querySelectorAll('[data-blk]').forEach(b=>b.onclick=()=>setBlock(+b.dataset.blk));
 }
-function markAskedByText(text){const i=cur();for(const c of i.competencias)for(const q of c.perguntas){if(q&&text.toLowerCase().includes(q.toLowerCase().slice(0,25))&&!i.asked.includes(q))i.asked.push(q)}renderRoteiro()}
-function updateBlock(){const i=cur();const n=$('#blkName');if(n)n.textContent=(room.block+1)+'/'+i.competencias.length+' '+(i.competencias[room.block]?.nome||'')}
+function markAskedByText(text){const i=cur();for(const c of blocks(i))for(const q of c.perguntas){if(q&&text.toLowerCase().includes(q.toLowerCase().slice(0,25))&&!i.asked.includes(q))i.asked.push(q)}renderRoteiro()}
+function updateBlock(){const i=cur();const B=blocks(i);const b=B[room.block]||{};const n=$('#blkName');if(n)n.textContent=(room.block+1)+'/'+B.length+' '+(b.grupo?b.grupo+' · ':'')+(b.nome||'');const t=$('#blkTarget');if(t)t.textContent=fmt((b.min||5)*60)}
 function addMark(label,note){const i=cur();i.marks.push({t:now(),label,note:note||''});save();renderMarks();toast('Marcado em '+fmt(now()))}
 function renderMarks(){const b=$('#mkList');if(!b)return;const i=cur();b.innerHTML=i.marks.slice(-5).reverse().map(m=>`<div>${fmt(m.t)} · <b style="color:var(--ink)">${esc(m.label)}</b>${m.note?' — '+esc(m.note):''}</div>`).join('')}
 function setSuggestion(q,why){const a=$('#sugQ'),b=$('#sugWhy');if(!a)return;a.textContent=q;b.textContent=why||''}
@@ -872,13 +892,13 @@ Responda só em JSON: {"pergunta":"..."}`,true);
 async function suggest(){
   const i=cur(); if(room.sugLoading)return;
   const pend=i.competencias.filter(c=>c.status!=='ok');
-  const fallback=()=>{const c=pend[0]||i.competencias[room.block];const q=(c?.perguntas||[]).find(x=>!i.asked.includes(x))||'Pode me dar um exemplo concreto, com situação, ação e resultado?';setSuggestion(q,c?'Competência ainda não coberta: '+c.nome:'')};
+  const fallback=()=>{const bk=blocks(i)[room.block];if(bk&&!bk.grupo){const q=bk.perguntas.find(x=>!i.asked.includes(x));if(q){setSuggestion(q,'Bloco atual: '+bk.nome);return}}const c=pend[0]||i.competencias[0];const q=(c?.perguntas||[]).find(x=>!i.asked.includes(x))||'Pode me dar um exemplo concreto, com situação, ação e resultado?';setSuggestion(q,c?'Competência ainda não coberta: '+c.nome:'')};
   if(!sampleFn){fallback();return}
   room.sugLoading=true; const btn=$('#bSug'); btn.innerHTML='<span class="spin"></span> Pensando…';
   try{
     const last=i.transcript.slice(-8).map(l=>(l.who==='C'?'Candidato':'Recrutador')+': '+l.text).join('\n');
     const inds=i.indicios.slice(-3).map(x=>`${EMO[x.emo].nome} em ${fmt(x.t)}${x.inc?' (incongruente com a fala)':''}`).join('; ')||'nenhum';
-    const r=await ai(`Você é um copiloto de entrevista por competências para um recrutador no Brasil. Sugira UMA próxima pergunta curta, aberta e respeitosa, em português do Brasil, que aprofunde a conversa ou cubra uma competência pendente. Use os indícios de emoção apenas como pista para aprofundar, nunca para acusar ou concluir algo sobre a pessoa.\nVaga: ${i.vaga}\nCompetências pendentes: ${pend.map(c=>c.nome).join(', ')||'nenhuma'}\nIndícios recentes: ${inds}\nÚltimas falas:\n${last||'(início da entrevista)'}\nResponda só em JSON: {"pergunta":"...","motivo":"1 frase curta"}`,true);
+    const r=await ai(`Você é um copiloto de entrevista por competências para um recrutador no Brasil. Sugira UMA próxima pergunta curta, aberta e respeitosa, em português do Brasil, que aprofunde a conversa ou cubra uma competência pendente. Use os indícios de emoção apenas como pista para aprofundar, nunca para acusar ou concluir algo sobre a pessoa.\nVaga: ${i.vaga}\nBloco atual do roteiro: ${(blocks(i)[room.block]||{}).nome||'-'} (ordem: Pessoal, Formação, Experiências, Competências, Livre). Sugira uma pergunta adequada ao bloco atual.\nCompetências pendentes: ${pend.map(c=>c.nome).join(', ')||'nenhuma'}\nIndícios recentes: ${inds}\nÚltimas falas:\n${last||'(início da entrevista)'}\nResponda só em JSON: {"pergunta":"...","motivo":"1 frase curta"}`,true);
     if(r&&r.pergunta)setSuggestion(r.pergunta,r.motivo||''); else fallback();
   }catch(e){aiErr(e);fallback()}
   room.sugLoading=false; btn.innerHTML=icon('spark')+' Nova sugestão';
