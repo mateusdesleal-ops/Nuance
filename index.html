@@ -212,6 +212,8 @@ table.cmp th{font-size:12px;color:var(--muted);font-weight:700}
 .spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+body.cand nav.main{display:none}
+body.cand .brand{pointer-events:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -343,11 +345,12 @@ function seed(){
   const ana = {id:'i1',code:'NU-7Q4K',candidato:'Ana Souza',vaga:'Analista de RH Pleno',descricao:'Recrutamento e seleção ponta a ponta para vagas operacionais e administrativas, interface com gestores, indicadores de R&S.',curriculo:'5 anos em R&S. 3 anos em indústria de alimentos. Graduação em Psicologia. Pós em Gestão de Pessoas.',competencias:JSON.parse(JSON.stringify(DEFAULT_COMPS)).map(c=>({...c,status:'pendente',nota:0})),features:{...allOn},cv:null,status:'agendada',consent:null,transcript:[],marks:[],indicios:[],parecer:'',devolutiva:'',pares:[],createdAt:now-3600e3,duracao:0,asked:[]};
   const bruno = {id:'i2',code:'NU-3H8M',candidato:'Bruno Lima',vaga:'Analista de RH Pleno',descricao:ana.descricao,curriculo:'4 anos em R&S em varejo.',competencias:DEFAULT_COMPS.map((c,i)=>{const n=['tem','melhorar','melhorar','tem','tem'][i];return {nome:c.nome,perguntas:c.perguntas,status:'ok',nivel:n,sug:{nivel:n,justificativa:['Comunica-se com clareza e objetividade.','Cita conflitos de forma genérica, sem detalhar a própria ação.','Menciona resultados, mas sem números.','Descreve um método claro de priorização.','Já lidera uma equipe de dois assistentes.'][i],evidencia:''}}}),features:{...allOn},cv:null,status:'concluida',consent:'full',transcript:[{t:5,who:'C',text:'Trabalho com recrutamento há quatro anos, principalmente no varejo.'},{t:40,who:'C',text:'Lidero uma equipe de dois assistentes há um ano.'}],marks:[{t:40,label:'Exemplo forte'}],indicios:[{t:12,emo:'alegria',v:.7,micro:false,inc:false},{t:55,emo:'surpresa',v:.5,micro:true,inc:false}],parecer:'### Resumo\nBruno demonstra boa experiência em varejo e liderança inicial de equipe.\n### Pontos a aprofundar\n- Gestão de conflitos com gestores\n- Indicadores de resultado',devolutiva:'',pares:[{autor:'Gestora da área',texto:'Gostei da experiência com volume alto de vagas.'}],createdAt:now-86400e3,duracao:1900,asked:[]};
   bruno.secoes={s_formacao:'O candidato atua há quatro anos com recrutamento e seleção no varejo, com experiência em processos de alto volume.',s_perfil:'Durante o processo de avaliação, o candidato demonstrou boa comunicação e organização, com método claro de priorização. No entanto, ao abordar conflitos com gestores, apresentou respostas genéricas, sem detalhar a própria atuação.',s_fortes:'Comunicação, organização e experiência com alto volume de vagas.',s_desenv:'Gestão de conflitos e apresentação de resultados com indicadores.',s_conclusao:'O candidato apresenta potencial para a função. Recomenda-se um plano de desenvolvimento voltado à gestão de conflitos e à mensuração de resultados.'}; bruno.parecerFinal='Aprovado com ressalvas';
-  const s = {templates:[defaultTemplate()],interviews:[ana,bruno],consents:[{id:'c1',iid:'i2',code:'NU-3H8M',candidato:'Bruno Lima',choice:'full',at:new Date(now-86400e3).toISOString(),versao:CONSENT_VERSION}],settings:{empresa:'Sua Empresa',contato:'rh@suaempresa.com.br',retencao:90}};
+  const s = {templates:[defaultTemplate()],interviews:[ana,bruno],consents:[{id:'c1',iid:'i2',code:'NU-3H8M',candidato:'Bruno Lima',choice:'full',at:new Date(now-86400e3).toISOString(),versao:CONSENT_VERSION}],settings:{empresa:'Sua Empresa',contato:'rh@suaempresa.com.br',retencao:90,site:'https://mateusdesleal-ops.github.io/Nuance/'}};
   return s;
 }
 function load(){try{const r=localStorage.getItem('nuance_v1');if(!r)return null;const s=JSON.parse(r);
   if(!s.templates||!s.templates.length) s.templates=[defaultTemplate()];
+  if(!s.settings.site) s.settings.site='https://mateusdesleal-ops.github.io/Nuance/';
   s.interviews.forEach(i=>i.competencias.forEach(c=>{if(c.nivel===undefined){c.nivel=c.nota>=4?'tem':c.nota===3?'melhorar':c.nota>0?'nao':null;c.sug=c.sug||null}}));return s}catch(e){return null}}
 function save(){try{localStorage.setItem('nuance_v1',JSON.stringify(S))}catch(e){}}
 function cur(){return S.interviews.find(i=>i.id===curId)}
@@ -395,7 +398,13 @@ document.addEventListener('click',e=>{
   const g=e.target.closest('[data-go]'); if(g){go(g.dataset.go,g.dataset.id);return}
 });
 $('#modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+const CAND_VIEWS=['candidato','aceite','candsala'];
+function isCand(){return location.hash==='#entrar'}
+function candLink(){return (S.settings.site||'').replace(/#.*$/,'')+'#entrar'}
+function applyMode(){document.body.classList.toggle('cand',isCand())}
+window.addEventListener('hashchange',()=>{applyMode();go(isCand()?'candidato':'home')});
 function go(v,id){
+  if(isCand()&&!CAND_VIEWS.includes(v)) v='candidato';
   if(room&&v!=='sala') stopRoom();
   view=v; if(id) curId=id;
   document.querySelectorAll('nav.main button').forEach(b=>b.classList.toggle('on',b.dataset.go===v));
@@ -412,6 +421,7 @@ function go(v,id){
 
 /* ---------- HOME ---------- */
 function vHome(){
+  setTimeout(()=>{const c=$('#hCopy');if(c)c.onclick=()=>copy(candLink());const t=$('#hTest');if(t)t.onclick=()=>{location.hash='entrar'}},0);
   const ivs=[...S.interviews].sort((a,b)=>b.createdAt-a.createdAt);
   const stPill=i=>i.status==='concluida'?'<span class="pill ok">Concluída</span>':i.status==='em_andamento'?'<span class="pill terra"><span class="dot rec"></span>Ao vivo</span>':'<span class="pill gray">Agendada</span>';
   app.innerHTML=`
@@ -422,7 +432,7 @@ function vHome(){
       <p class="muted" style="font-size:17px">Videoentrevistas com transcrição, roteiro por competência, copiloto de perguntas e indícios de emoção baseados em Paul Ekman, sempre com o consentimento do candidato.</p>
       <div class="grid2" style="margin-top:8px">
         <button class="card role-card" data-go="nova"><span class="role-ic" style="background:var(--salmon-l);color:var(--terra-d)">${icon('plus')}</span><span><h3>Sou recrutador</h3><span class="small muted">Configurar uma nova entrevista</span></span></button>
-        <button class="card role-card" data-go="candidato"><span class="role-ic" style="background:#F0EBE5">${icon('key')}</span><span><h3>Sou candidato</h3><span class="small muted">Entrar com o código recebido</span></span></button>
+        <div class="card role-card" style="cursor:default"><span class="role-ic" style="background:#F0EBE5">${icon('key')}</span><span style="min-width:0"><h3>Link do candidato</h3><span class="small muted" style="word-break:break-all">${esc(candLink())}</span><span class="row" style="margin-top:8px"><button class="btn sm" id="hCopy">${icon('copy')} Copiar</button><button class="btn sm ghost" id="hTest">Ver como candidato</button></span></span></div>
       </div>
     </div>
     <div class="hero-logo">${logoSVG('heroClip')}</div>
@@ -517,7 +527,7 @@ function renderCv(){
 /* ---------- CONVITE ---------- */
 function vConvite(){
   const i=cur(); if(!i)return go('home');
-  const msg=`Olá, ${i.candidato.split(' ')[0]}! Tudo bem?\n\nSua entrevista para a vaga de ${i.vaga} na ${S.settings.empresa} acontecerá pelo Nuance.\n\nNo horário combinado, acesse o Nuance, escolha "Sou candidato" e informe o código:\n\n${i.code}\n\nAntes de entrar, você verá como a entrevista será registrada e poderá escolher o que autoriza.\n\nAté breve!`;
+  const msg=`Olá, ${i.candidato.split(' ')[0]}! Tudo bem?\n\nSua entrevista para a vaga de ${i.vaga} na ${S.settings.empresa} acontecerá pelo Nuance.\n\nNo horário combinado, acesse o link abaixo e informe o código da sua sala:\n\n${candLink()}\n\nCódigo: ${i.code}\n\nAntes de entrar, você verá como a entrevista será registrada e poderá escolher o que autoriza.\n\nAté breve!`;
   app.innerHTML=`<div class="row" style="margin-bottom:16px"><h1>Entrevista criada</h1></div>
   <div class="grid2" style="align-items:start">
     <div class="card stack" style="align-items:flex-start">
@@ -525,11 +535,12 @@ function vConvite(){
       <div class="code">${esc(i.code)}</div>
       <div class="row"><button class="btn sm" id="cCode">${icon('copy')} Copiar código</button></div>
       <hr class="s" style="width:100%">
-      <div class="row" style="width:100%"><button class="btn dark" data-go="sala" data-id="${i.id}">Abrir sala do recrutador</button><button class="btn ghost" data-go="candidato">Testar como candidato</button></div>
+      <div class="row" style="width:100%"><button class="btn dark" data-go="sala" data-id="${i.id}">Abrir sala do recrutador</button><button class="btn ghost" id="cTest">Ver como candidato</button></div>
     </div>
     ${i.features.convite?`<div class="card stack"><h3>Mensagem de convite</h3><div class="msgbox">${esc(msg)}</div><div class="row"><button class="btn sm primary" id="cMsg">${icon('copy')} Copiar mensagem</button><span class="xs muted">Cole no e-mail ou WhatsApp</span></div></div>`:''}
   </div>`;
   $('#cCode').onclick=()=>copy(i.code);
+  $('#cTest').onclick=()=>{location.hash='entrar'};
   const m=$('#cMsg'); if(m) m.onclick=()=>copy(msg);
 }
 
@@ -542,7 +553,7 @@ function vCandidato(){
     <input id="cCodeIn" type="text" placeholder="NU-7Q4K" style="text-align:center;font-size:22px;font-weight:800;letter-spacing:3px;text-transform:uppercase" autocomplete="off">
     <p id="cErr" class="small" style="color:#A3301E;min-height:20px"></p>
     <button class="btn primary" id="cGo" style="width:100%">Continuar</button>
-    <p class="xs muted">Teste com o código NU-7Q4K</p>
+    ${isCand()?'':'<p class="xs muted">Teste com o código NU-7Q4K</p>'}
   </div>`;
   const inp=$('#cCodeIn'); inp.focus();
   inp.addEventListener('input',()=>$('#cErr').textContent='');
@@ -573,12 +584,13 @@ function vAceite(){
   const f=$('#aFull'); if(f)f.onclick=()=>rec('full'); $('#aBasic').onclick=()=>rec('basic');
 }
 function vCandSala(){
-  const i=cur(); if(!i)return go('home');
+  const i=cur(); if(!i)return go('candidato');
+  setTimeout(()=>{const b=$('#backRec');if(b)b.onclick=()=>{curId=i.id;history.replaceState(null,'',location.pathname+location.search);applyMode();go('sala',i.id)}},0);
   app.innerHTML=`<div style="max-width:760px;margin:0 auto" class="stack">
     <div class="video" style="aspect-ratio:16/9"><div class="tagtl"><span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Gravando</span>${i.consent==='full'?'<span class="pill terra">Análise autorizada</span>':''}</div>
       <div style="color:#bbb;text-align:center"><div class="spin" style="width:28px;height:28px;margin-bottom:10px"></div><div>Aguardando o recrutador entrar…</div></div><div class="self">Você</div></div>
-    <div class="card row"><div style="flex:1"><b>${esc(i.vaga)}</b><div class="small muted">${esc(S.settings.empresa)} · código ${esc(i.code)}</div></div><button class="btn danger sm" data-go="home">Sair</button></div>
-    <div class="card small muted">Protótipo: esta é a tela que o candidato vê, uma videochamada comum. <button class="btn sm dark" data-go="sala" data-id="${i.id}" style="margin-left:6px">Ver como recrutador</button></div>
+    <div class="card row"><div style="flex:1"><b>${esc(i.vaga)}</b><div class="small muted">${esc(S.settings.empresa)} · código ${esc(i.code)}</div></div><button class="btn danger sm" data-go="candidato">Sair</button></div>
+    <div class="card small muted">Protótipo: esta é a tela que o candidato vê, uma videochamada comum. <button class="btn sm dark" id="backRec" style="margin-left:6px">Voltar para a área do recrutador</button></div>
   </div>`;
 }
 
@@ -1094,6 +1106,7 @@ function vLgpd(){
     <div class="card stack"><h3>Configurações do termo</h3>
       <div><label class="f" for="sE">Empresa</label><input id="sE" type="text" value="${esc(st.empresa)}"></div>
       <div><label class="f" for="sC">E-mail para pedidos do titular</label><input id="sC" type="text" value="${esc(st.contato)}"></div>
+      <div><label class="f" for="sS">Endereço do site (para o link do candidato)</label><input id="sS" type="text" value="${esc(st.site||'')}" placeholder="https://mateusdesleal-ops.github.io/Nuance/"></div>
       <div><label class="f" for="sR">Retenção (dias)</label><input id="sR" type="number" min="1" max="365" step="1" value="${esc(st.retencao)}"></div>
       <p id="sErr" class="small" style="color:#A3301E;min-height:18px"></p>
       <button class="btn primary" id="sSave">Salvar</button>
@@ -1106,13 +1119,13 @@ function vLgpd(){
   <div class="card" style="margin-top:16px"><h3 style="margin-bottom:8px">Dados por entrevista</h3>
     ${S.interviews.map(i=>{const d=days(i.createdAt),exp=d>=st.retencao;return `<div class="list-item"><div style="flex:1;min-width:160px"><b>${esc(i.candidato)}</b><div class="xs muted">${esc(i.vaga)} · criada há ${d} dia${d===1?'':'s'} · ${i.transcript.length} falas · ${i.indicios.length} indícios</div></div>${exp?'<span class="pill warn">Prazo vencido</span>':`<span class="pill gray">Expira em ${st.retencao-d} dias</span>`}<button class="btn sm ghost" data-exp="${i.id}">${icon('copy')} Copiar dados</button><button class="btn sm danger" data-del="${i.id}">Excluir</button></div>`}).join('')||'<p class="muted small">Sem dados.</p>'}
   </div>`;
-  $('#sSave').onclick=()=>{const r=parseInt($('#sR').value,10); if(!$('#sE').value.trim()||!$('#sC').value.trim()){$('#sErr').textContent='Preencha empresa e e-mail.';return} if(!(r>=1&&r<=365)){$('#sErr').textContent='Retenção entre 1 e 365 dias.';return} st.empresa=$('#sE').value.trim();st.contato=$('#sC').value.trim();st.retencao=r;save();toast('Configurações salvas');vLgpd()};
+  $('#sSave').onclick=()=>{const r=parseInt($('#sR').value,10); if(!$('#sE').value.trim()||!$('#sC').value.trim()){$('#sErr').textContent='Preencha empresa e e-mail.';return} if(!(r>=1&&r<=365)){$('#sErr').textContent='Retenção entre 1 e 365 dias.';return} st.empresa=$('#sE').value.trim();st.site=$('#sS').value.trim()||st.site;st.contato=$('#sC').value.trim();st.retencao=r;save();toast('Configurações salvas');vLgpd()};
   ['#sE','#sC','#sR'].forEach(s=>$(s).addEventListener('input',()=>$('#sErr').textContent=''));
   app.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{const i=S.interviews.find(x=>x.id===b.dataset.exp);copy(JSON.stringify({candidato:i.candidato,vaga:i.vaga,consentimento:S.consents.filter(c=>c.iid===i.id),transcricao:i.transcript,indicios:i.indicios,marcacoes:i.marks,parecer:i.parecer},null,2))});
   app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const i=S.interviews.find(x=>x.id===b.dataset.del);confirmBox(`Excluir todos os dados de ${i.candidato}?`,'Excluir',()=>{S.interviews=S.interviews.filter(x=>x.id!==i.id);save();toast('Dados excluídos');vLgpd()})});
 }
 
-go('home');
+applyMode(); go(isCand()?'candidato':'home');
 </script>
 </body>
 </html>

@@ -14,7 +14,7 @@ python3 -m http.server 8080
 ```
 
 - Demonstração: abra a sala de **Ana Souza** e clique em **Iniciar demonstração**.
-- Candidato: use o código **NU-7Q4K**.
+- Candidato: o link do candidato termina em `#entrar` (ex.: `https://mateusdesleal-ops.github.io/Nuance/#entrar`) e mostra só a tela do código, o termo e a sala. Teste com o código **NU-7Q4K**.
 
 ## Funcionalidades
 
