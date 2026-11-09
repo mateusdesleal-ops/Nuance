@@ -214,6 +214,11 @@ table.cmp th{font-size:12px;color:var(--muted);font-weight:700}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 body.cand nav.main{display:none}
 body.cand .brand{pointer-events:none}
+.meter{display:inline-block;width:70px;height:6px;background:#E3DCD3;border-radius:9px;overflow:hidden;vertical-align:middle}
+.meter i{display:block;height:100%;width:0;background:var(--ok);transition:width .1s}
+.btn.off{background:#FBE4E0;border-color:#A3301E;color:#A3301E}
+.callbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.unlock{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -246,7 +251,7 @@ body.cand .brand{pointer-events:none}
       <button data-go="nova">Nova vaga</button>
       <button data-go="comparar">Comparar</button>
       <button data-go="modelos">Modelos</button>
-      <button data-go="lgpd">LGPD</button>
+      <button data-go="lgpd">Configurações</button>
     </nav>
   </div>
 </header>
@@ -273,7 +278,7 @@ const FEATURES = [
   ['roteiro','Roteiro por vaga','IA monta perguntas por competência','antes'],
   ['curriculo','Leitura do currículo','Aponta lacunas e pontos a confirmar','antes'],
   ['convite','Convite com código','Mensagem pronta para e-mail ou WhatsApp','antes'],
-  ['gravacao','Gravação e transcrição','Transcrição ao vivo da conversa','durante'],
+  ['gravacao','Transcrição','Transcrição automática da conversa (o vídeo não é gravado)','durante'],
   ['ekman','Painel Ekman','Indícios das 7 emoções básicas','durante'],
   ['incongruencia','Alerta de incongruência','Fala positiva + expressão negativa','durante'],
   ['rapport','Abertura e rapport','Agradecimento e quebra-gelo no início','durante'],
@@ -303,7 +308,7 @@ const ETAPA_INFO=[['pessoal','Pessoal',5],['formacao','Formação',5],['experien
 function blocks(i){const e=i.etapas||DEFAULT_ETAPAS;const n=Math.max(1,i.competencias.length);
   return [...ETAPA_INFO.map(([k,nome,min])=>({nome,perguntas:e[k]||[],min})),...i.competencias.map(c=>({nome:c.nome,grupo:'Competências',perguntas:c.perguntas,min:Math.max(2,Math.round(20/n))})),{nome:'Livre',perguntas:e.livre||[],min:5}]}
 const MARKS = ['Hesitou','Se animou','Resposta vaga','Exemplo forte','Mudou de postura','Evitou o tema'];
-const CONSENT_VERSION = '1.0';
+const CONSENT_VERSION = '1.1';
 const PARECER_FINAL = ['Aprovado','Aprovado com ressalvas','Não recomendado','Em análise'];
 const SENSITIVE_RULE = 'Nunca escreva sobre saúde física ou mental (nem sugira diagnósticos), religião, orientação sexual, origem, opinião política ou gravidez, mesmo que tenham surgido na conversa. Não use os indícios de emoção da plataforma como conclusão sobre a pessoa.';
 function defaultTemplate(){return {id:'t_padrao',nome:'Parecer de avaliação (padrão)',padrao:true,
@@ -355,8 +360,8 @@ function seed(){
   const ana = {id:'i1',code:'NU-7Q4K',candidato:'Ana Souza',vaga:'Analista de RH Pleno',descricao:'Recrutamento e seleção ponta a ponta para vagas operacionais e administrativas, interface com gestores, indicadores de R&S.',curriculo:'5 anos em R&S. 3 anos em indústria de alimentos. Graduação em Psicologia. Pós em Gestão de Pessoas.',competencias:JSON.parse(JSON.stringify(DEFAULT_COMPS)).map(c=>({...c,status:'pendente',nota:0})),features:{...allOn},cv:null,status:'agendada',consent:null,transcript:[],marks:[],indicios:[],parecer:'',devolutiva:'',pares:[],createdAt:now-3600e3,duracao:0,asked:[]};
   const bruno = {id:'i2',code:'NU-3H8M',candidato:'Bruno Lima',vaga:'Analista de RH Pleno',descricao:ana.descricao,curriculo:'4 anos em R&S em varejo.',competencias:DEFAULT_COMPS.map((c,i)=>{const n=['tem','melhorar','melhorar','tem','tem'][i];return {nome:c.nome,perguntas:c.perguntas,status:'ok',nivel:n,sug:{nivel:n,justificativa:['Comunica-se com clareza e objetividade.','Cita conflitos de forma genérica, sem detalhar a própria ação.','Menciona resultados, mas sem números.','Descreve um método claro de priorização.','Já lidera uma equipe de dois assistentes.'][i],evidencia:''}}}),features:{...allOn},cv:null,status:'concluida',consent:'full',transcript:[{t:5,who:'C',text:'Trabalho com recrutamento há quatro anos, principalmente no varejo.'},{t:40,who:'C',text:'Lidero uma equipe de dois assistentes há um ano.'}],marks:[{t:40,label:'Exemplo forte'}],indicios:[{t:12,emo:'alegria',v:.7,micro:false,inc:false},{t:55,emo:'surpresa',v:.5,micro:true,inc:false}],parecer:'### Resumo\nBruno demonstra boa experiência em varejo e liderança inicial de equipe.\n### Pontos a aprofundar\n- Gestão de conflitos com gestores\n- Indicadores de resultado',devolutiva:'',pares:[{autor:'Gestora da área',texto:'Gostei da experiência com volume alto de vagas.'}],createdAt:now-86400e3,duracao:1900,asked:[]};
   bruno.secoes={s_formacao:'O candidato atua há quatro anos com recrutamento e seleção no varejo, com experiência em processos de alto volume.',s_perfil:'Durante o processo de avaliação, o candidato demonstrou boa comunicação e organização, com método claro de priorização. No entanto, ao abordar conflitos com gestores, apresentou respostas genéricas, sem detalhar a própria atuação.',s_fortes:'Comunicação, organização e experiência com alto volume de vagas.',s_desenv:'Gestão de conflitos e apresentação de resultados com indicadores.',s_conclusao:'O candidato apresenta potencial para a função. Recomenda-se um plano de desenvolvimento voltado à gestão de conflitos e à mensuração de resultados.'}; bruno.parecerFinal='Aprovado com ressalvas';
-  ana.vagaId='v1'; bruno.vagaId='v1';
-  const vaga1={id:'v1',nome:'Analista de RH Pleno',descricao:ana.descricao,competencias:DEFAULT_COMPS.map(c=>({nome:c.nome,perguntas:[...c.perguntas]})),etapas:JSON.parse(JSON.stringify(DEFAULT_ETAPAS)),features:{...allOn},templateId:'t_padrao',createdAt:now-2*86400e3};
+  ana.vagaId='v1'; bruno.vagaId='v1'; ana.demo=true; bruno.demo=true;
+  const vaga1={id:'v1',nome:'Analista de RH Pleno',descricao:ana.descricao,competencias:DEFAULT_COMPS.map(c=>({nome:c.nome,perguntas:[...c.perguntas]})),etapas:JSON.parse(JSON.stringify(DEFAULT_ETAPAS)),features:{...allOn},templateId:'t_padrao',createdAt:now-2*86400e3,demo:true};
   const s = {templates:[defaultTemplate()],vagas:[vaga1],interviews:[ana,bruno],consents:[{id:'c1',iid:'i2',code:'NU-3H8M',candidato:'Bruno Lima',choice:'full',at:new Date(now-86400e3).toISOString(),versao:CONSENT_VERSION}],settings:{empresa:'Sua Empresa',contato:'rh@suaempresa.com.br',retencao:90,site:'https://mateusdesleal-ops.github.io/Nuance/'}};
   return s;
 }
@@ -364,6 +369,7 @@ function load(){try{const r=localStorage.getItem('nuance_v1');if(!r)return null;
   if(!s.templates||!s.templates.length) s.templates=[defaultTemplate()];
   if(!s.vagas){s.vagas=[];s.interviews.forEach(i=>{let v=s.vagas.find(x=>x.nome===i.vaga);if(!v){v={id:'v'+(s.vagas.length+1)+'_'+Date.now(),nome:i.vaga,descricao:i.descricao||'',competencias:i.competencias.map(c=>({nome:c.nome,perguntas:[...(c.perguntas||[])]})),etapas:i.etapas||JSON.parse(JSON.stringify(DEFAULT_ETAPAS)),features:{...i.features},templateId:i.templateId||'t_padrao',createdAt:i.createdAt||Date.now()};s.vagas.push(v)}i.vagaId=v.id})}
   if(!s.settings.site) s.settings.site='https://mateusdesleal-ops.github.io/Nuance/';
+  s.interviews.forEach(i=>{if((i.id==='i1'&&i.code==='NU-7Q4K')||(i.id==='i2'&&i.code==='NU-3H8M'))i.demo=true});
   [...s.interviews,...s.vagas].forEach(o=>{if(o.features)FEATURES.forEach(f=>{if(o.features[f[0]]===undefined)o.features[f[0]]=true})});
   s.interviews.forEach(i=>i.competencias.forEach(c=>{if(c.nivel===undefined){c.nivel=c.nota>=4?'tem':c.nota===3?'melhorar':c.nota>0?'nao':null;c.sug=c.sug||null}}));return s}catch(e){return null}}
 function save(){try{localStorage.setItem('nuance_v1',JSON.stringify(S))}catch(e){}}
@@ -465,9 +471,10 @@ function vHome(){
     </div>
     <div class="hero-logo" style="padding:0">${logoSVG('heroClip')}</div>
   </section>
+  ${(!S.settings.empresa||S.settings.empresa==='Sua Empresa')?`<div class="card row" style="margin-bottom:16px;background:var(--warn-l);border-color:#F0D9A8"><div style="flex:1;min-width:200px"><b>Configure o nome da sua empresa</b><div class="small">Ele aparece para o candidato no convite e no termo de aceite. Hoje está "Sua Empresa".</div></div><button class="btn sm" data-go="lgpd">Configurar</button></div>`:''}
   <section class="card">
     <div class="row" style="margin-bottom:6px"><h2>Vagas</h2><span class="spacer"></span><button class="btn sm primary" data-go="nova">${icon('plus')} Nova vaga</button></div>
-    ${vs.length?vs.map(v=>{const c=S.interviews.filter(i=>i.vagaId===v.id);const done=c.filter(i=>i.status==='concluida').length;return `<div class="list-item"><span class="avatar" style="border-radius:12px">${icon('key')}</span><div style="flex:1;min-width:180px"><b>${esc(v.nome)}</b><div class="small muted">${c.length} candidato${c.length===1?'':'s'} · ${done} entrevista${done===1?'':'s'} concluída${done===1?'':'s'}</div></div><button class="btn sm dark" data-go="vaga" data-id="${v.id}">Abrir vaga</button></div>`}).join(''):'<p class="muted">Crie sua primeira vaga e depois cadastre os candidatos.</p>'}
+    ${vs.length?vs.map(v=>{const c=S.interviews.filter(i=>i.vagaId===v.id);const done=c.filter(i=>i.status==='concluida').length;return `<div class="list-item"><span class="avatar" style="border-radius:12px">${icon('key')}</span><div style="flex:1;min-width:180px"><b>${esc(v.nome)}</b>${v.demo?' <span class="pill gray">Demonstração</span>':''}<div class="small muted">${c.length} candidato${c.length===1?'':'s'} · ${done} entrevista${done===1?'':'s'} concluída${done===1?'':'s'}</div></div><button class="btn sm dark" data-go="vaga" data-id="${v.id}">Abrir vaga</button></div>`}).join(''):'<p class="muted">Crie sua primeira vaga e depois cadastre os candidatos.</p>'}
   </section>`;
 }
 
@@ -484,8 +491,9 @@ function vNova(){
     <div class="stack">
       <div class="card stack">
         <div><label class="f" for="fVaga">Nome da vaga</label><input id="fVaga" type="text" placeholder="Analista de RH Pleno" value="${esc(draft.nome)}"></div>
-        <div><label class="f" for="fDesc">Descrição da vaga</label><textarea id="fDesc" placeholder="Cole aqui a descrição da vaga">${esc(draft.descricao)}</textarea></div>
-        <div class="row"><button class="btn sm" id="bRoteiro">${icon('spark')} Gerar roteiro com IA</button><span class="xs muted">Monta competências e perguntas a partir da vaga</span></div>
+        <div><label class="f" for="fDesc">Descrição das atividades da vaga</label><textarea id="fDesc" style="min-height:160px" placeholder="Cole aqui as atividades e responsabilidades do cargo, requisitos e o perfil desejado">${esc(draft.descricao)}</textarea></div>
+        <div class="row"><label class="btn sm ghost" style="cursor:pointer">Enviar descrição (.docx ou .txt)<input type="file" accept=".docx,.txt,text/plain" id="fDescFile" class="sr"></label></div>
+        <div class="row"><button class="btn sm primary" id="bRoteiro">${icon('spark')} Gerar roteiro por competências com IA</button><span class="xs muted">A IA lê as atividades e monta as competências e as perguntas comportamentais (bloco 4).</span></div>
       </div>
       <div class="card stack">
         <h3>Ordem da entrevista</h3>
@@ -510,6 +518,7 @@ function vNova(){
   </div>`;
   const sync=()=>{draft.nome=$('#fVaga').value;draft.descricao=$('#fDesc').value;$('#vErr').textContent=''};
   ['#fVaga','#fDesc'].forEach(s=>$(s).addEventListener('input',sync));
+  $('#fDescFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const t=/\.docx$/i.test(f.name)?await docxText(f):await f.text();$('#fDesc').value=t;sync();toast('Descrição carregada')}catch(err){$('#vErr').textContent='Não consegui ler esse arquivo. Cole o texto no campo.'}};
   $('#fTpl').addEventListener('change',e=>draft.templateId=e.target.value);
   app.querySelectorAll('[data-et]').forEach(t=>t.addEventListener('input',()=>{draft.etapas[t.dataset.et]=t.value.split('\n').map(x=>x.trim()).filter(Boolean)}));
   app.querySelectorAll('[data-ft]').forEach(c=>c.addEventListener('change',()=>{draft.features[c.dataset.ft]=c.checked}));
@@ -517,13 +526,13 @@ function vNova(){
   const bc=$('#bCancel'); if(bc) bc.onclick=()=>{const id=draft.id;draft=null;go('vaga',id)};
   $('#bAddComp').onclick=()=>{draft.competencias.push({nome:'Nova competência',perguntas:['']});renderComps()};
   $('#bRoteiro').onclick=async e=>{
-    sync(); const b=e.currentTarget; if(!draft.nome&&!draft.descricao){$('#vErr').textContent='Preencha o nome ou a descrição da vaga.';return}
+    sync(); const b=e.currentTarget; if(!draft.descricao.trim()){$('#vErr').textContent='Cole ou envie a descrição das atividades da vaga primeiro.';$('#fDesc').focus();return}
     b.innerHTML='<span class="spin"></span> Gerando…';b.disabled=true;
     try{
-      const r=await ai(`Você é especialista em recrutamento por competências no Brasil. Para a vaga "${draft.nome}" com a descrição abaixo, defina de 4 a 6 competências essenciais e, para cada uma, 3 perguntas comportamentais (método STAR), em português do Brasil, curtas e abertas. Não repita perguntas de trajetória ou formação, que já ficam em outros blocos.\nDescrição: ${draft.descricao}\nResponda só em JSON: {"competencias":[{"nome":"...","perguntas":["...","...","..."]}]}`,true);
+      const r=await ai(`Você é especialista em recrutamento por competências no Brasil. A partir das atividades e responsabilidades da vaga "${draft.nome}" descritas abaixo, identifique de 4 a 6 competências essenciais para executá-las bem e, para cada uma, escreva 3 perguntas comportamentais (método STAR) ligadas às atividades reais do cargo, em português do Brasil, curtas e abertas. Não repita perguntas de trajetória ou formação, que já ficam em outros blocos.\nDescrição: ${draft.descricao}\nResponda só em JSON: {"competencias":[{"nome":"...","perguntas":["...","...","..."]}]}`,true);
       if(r&&Array.isArray(r.competencias)){draft.competencias=r.competencias.map(c=>({nome:String(c.nome),perguntas:(c.perguntas||[]).map(String)}));renderComps();toast('Roteiro gerado')}
     }catch(err){aiErr(err)}
-    b.innerHTML=icon('spark')+' Gerar roteiro com IA';b.disabled=false;
+    b.innerHTML=icon('spark')+' Gerar roteiro por competências com IA';b.disabled=false;
   };
   $('#bSalvarVaga').onclick=()=>{
     sync(); if(!draft.nome.trim()){$('#vErr').textContent='Dê um nome para a vaga.';$('#fVaga').focus();return}
@@ -566,14 +575,18 @@ function vVaga(){
     <p id="cnErr" class="small" style="color:#A3301E;min-height:18px"></p>
     <div class="row"><span class="spacer"></span><button class="btn ghost" id="bCandCancel">Cancelar</button><button class="btn primary" id="bCandSave">Cadastrar e gerar código</button></div>
   </div>
+  <div class="card" style="margin-bottom:16px"><div class="row"><h3 style="flex:1">Roteiro por competências</h3><button class="btn sm ghost" id="bEditRot">${v.descricao&&v.descricao.trim()?'Editar roteiro':'Gerar a partir das atividades'}</button></div>
+    ${v.descricao&&v.descricao.trim()?'':'<p class="small muted" style="margin:6px 0">Esta vaga ainda não tem a descrição das atividades. Com ela, a IA monta as competências e as perguntas.</p>'}
+    <div class="row" style="gap:6px;margin-top:8px">${v.competencias.map(c=>`<span class="chip">${esc(c.nome)} · ${c.perguntas.length}</span>`).join('')||'<span class="small muted">Nenhuma competência.</span>'}</div></div>
   <div class="card">
     <h3 style="margin-bottom:6px">Candidatos</h3>
-    ${cs.length?cs.map(i=>`<div class="list-item"><span class="avatar">${initials(i.candidato)}</span><div style="flex:1;min-width:160px"><b>${esc(i.candidato)}</b><div class="small muted">código ${esc(i.code)}${i.parecerFinal?' · '+esc(i.parecerFinal):''}</div></div>${stPill(i)}${i.consent?`<span class="pill ${i.consent==='full'?'ok':'blue'}">${i.consent==='full'?'Análise autorizada':'Só gravação'}</span>`:''}
+    ${cs.length?cs.map(i=>`<div class="list-item"><span class="avatar">${initials(i.candidato)}</span><div style="flex:1;min-width:160px"><b>${esc(i.candidato)}</b>${i.demo?' <span class="pill gray">Demonstração</span>':''}<div class="small muted">código ${esc(i.code)}${i.parecerFinal?' · '+esc(i.parecerFinal):''}</div></div>${stPill(i)}${i.consent?`<span class="pill ${i.consent==='full'?'ok':'blue'}">${i.consent==='full'?'Análise autorizada':'Só transcrição'}</span>`:''}
       <div class="row">${i.status==='concluida'?`<button class="btn sm" data-go="parecer" data-id="${i.id}">Ver parecer</button>`:`<button class="btn sm" data-go="convite" data-id="${i.id}">Convite</button><button class="btn sm dark" data-go="sala" data-id="${i.id}">Abrir sala</button>`}</div></div>`).join(''):'<p class="muted small">Nenhum candidato ainda. Clique em "Adicionar candidato".</p>'}
   </div>
   <div class="card row" style="margin-top:16px"><div style="flex:1;min-width:200px"><b class="small">Link do candidato</b><div class="xs muted" style="word-break:break-all">${esc(candLink())}</div></div><button class="btn sm" id="hCopy">${icon('copy')} Copiar link</button><button class="btn sm ghost" id="hTest">Ver como candidato</button></div>`;
   $('#hCopy').onclick=()=>copy(candLink()); $('#hTest').onclick=()=>{location.hash='entrar'};
   $('#bEditVaga').onclick=()=>{draft=newDraft(v);go('nova','edit')};
+  $('#bEditRot').onclick=()=>{draft=newDraft(v);go('nova','edit');setTimeout(()=>{const d=$('#fDesc');if(d){d.scrollIntoView({block:'center'});d.focus()}},50)};
   const bcv=$('#bCmpVaga'); if(bcv) bcv.onclick=()=>{vComparar.sel=v.id;go('comparar')};
   const form=$('#candForm');
   $('#bAddCand').onclick=()=>{candDraft.open=true;form.style.display='flex';$('#cNome').focus()};
@@ -651,9 +664,9 @@ function vAceite(){
   app.innerHTML=`<div class="card consent">
     <h2>Antes de começar sua entrevista</h2>
     <p style="margin-top:10px">Olá, ${esc(i.candidato.split(' ')[0])}! Esta entrevista faz parte do processo seletivo conduzido por <b>${esc(st.empresa)}</b> para a vaga de <b>${esc(i.vaga)}</b>. Para tornar o processo mais organizado e justo, o recrutador usa uma plataforma de apoio.</p>
-    ${i.features.gravacao?`<h3>Gravação e transcrição</h3><p>A entrevista será gravada e transcrita, para que o recrutador possa revisar suas respostas com atenção depois.</p>`:''}
+    ${i.features.gravacao?`<h3>Transcrição</h3><p>A conversa será transcrita automaticamente, para que o recrutador possa revisar suas respostas com atenção depois. O vídeo não é gravado. A transcrição é feita por um serviço de inteligência artificial que não usa seus dados para treinar modelos.</p>`:''}
     ${analise?`<div class="hl"><h3 style="margin-top:0">Análise de expressões</h3><p>Com sua autorização, a plataforma interpreta expressões faciais e linguagem corporal com base nos estudos de Paul Ekman sobre emoções. Essa análise gera apenas <i>indícios</i> para ajudar o recrutador a entender melhor a conversa e a fazer boas perguntas. <b>Ela não aprova nem reprova ninguém</b>: a decisão é sempre do recrutador, com base no conjunto do processo. Se você não autorizar, a entrevista acontece normalmente, sem nenhum prejuízo para você.</p></div>`:''}
-    <h3>Seus dados</h3><p>As gravações e análises ficam guardadas por até ${esc(st.retencao)} dias e são acessadas apenas pela equipe de recrutamento. Você pode pedir uma cópia ou a exclusão a qualquer momento pelo e-mail ${esc(st.contato)}. Tratamento conforme a LGPD (Lei 13.709/2018).</p>
+    <h3>Seus dados</h3><p>A transcrição e as análises ficam guardadas por até ${esc(st.retencao)} dias e são acessadas apenas pela equipe de recrutamento. Você pode pedir uma cópia ou a exclusão a qualquer momento pelo e-mail ${esc(st.contato)}. Tratamento conforme a LGPD (Lei 13.709/2018).</p>
     <div class="stack" style="margin-top:20px">
       ${analise?`<button class="btn primary" id="aFull">${icon('check')} Autorizo a análise e quero entrar</button><button class="btn" id="aBasic">Entrar sem a análise de expressões</button>`:`<button class="btn primary" id="aBasic">${icon('check')} Entendi e quero entrar</button>`}
     </div>
@@ -668,11 +681,18 @@ function vCandSala(){
   const i=cur(); if(!i)return go('candidato');
   if(i.remote){
     app.innerHTML=`<div style="max-width:860px;margin:0 auto" class="stack">
-      <div class="video" style="aspect-ratio:16/9"><video id="rv" autoplay playsinline style="width:100%;height:100%;object-fit:cover;transform:none"></video>
-        <div class="tagtl">${i.features.gravacao?'<span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Gravando</span>':''}${i.consent==='full'?'<span class="pill terra">Análise autorizada</span>':''}</div>
-        <div id="cvWait" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#bbb"><div class="spin" style="width:28px;height:28px;margin-bottom:10px"></div><div>Aguardando o recrutador…</div></div>
+      <div class="video" style="aspect-ratio:16/9"><video id="rv" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;transform:none"></video>
+        <audio id="cAudio" autoplay playsinline></audio>
+        <button class="btn primary unlock" id="cUnlock" style="display:none">Toque para ativar o som</button>
+        <div class="tagtl">${i.features.gravacao?'<span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Transcrição ativa</span>':''}${i.consent==='full'?'<span class="pill terra">Análise autorizada</span>':''}</div>
+        <div id="cvWait" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#bbb;text-align:center;padding:20px"><div class="spin" style="width:28px;height:28px;margin-bottom:10px"></div><div>Aguardando o recrutador…</div></div>
         <div class="self" style="overflow:hidden;padding:0"><video id="lv" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover"></video></div></div>
-      <div class="card row"><div style="flex:1"><b>${esc(i.vaga)}</b><div class="small muted">${esc(i.empresa)} · sala ${esc(i.code)}</div><div class="small" id="cStatus" style="margin-top:4px">Ligando câmera e microfone…</div></div><button class="btn sm" id="cRetry" style="display:none">Tentar de novo</button><button class="btn danger sm" id="cLeave">Sair</button></div>
+      <div class="card stack" style="gap:10px">
+        <div class="row"><div style="flex:1;min-width:180px"><b>${esc(i.vaga)}</b><div class="small muted">${esc(i.empresa)} · sala ${esc(i.code)}</div></div><button class="btn sm" id="cRetry" style="display:none">Tentar de novo</button><button class="btn danger sm" id="cLeave">Sair</button></div>
+        <div class="callbar"><button class="btn sm" id="cMic" aria-pressed="false">${MIC_ON}</button><span class="meter" id="mMeter" title="Seu microfone"><i></i></span><button class="btn sm" id="cCam" aria-pressed="false">${CAM_ON}</button></div>
+        <div class="small" id="cStatus">Ligando câmera e microfone…</div>
+        <p class="xs muted" style="margin:0">Dica: use fone de ouvido para evitar eco. Se estiver na rede de uma empresa e a chamada não conectar, tente pelo 4G.</p>
+      </div>
     </div>`;
     $('#cLeave').onclick=()=>confirmBox('Sair da entrevista?','Sair',()=>{candStop();go('candidato')});
     $('#cRetry').onclick=()=>{$('#cRetry').style.display='none';candStart(i)};
@@ -680,7 +700,7 @@ function vCandSala(){
   }
   setTimeout(()=>{const b=$('#backRec');if(b)b.onclick=()=>{curId=i.id;history.replaceState(null,'',location.pathname+location.search);applyMode();go('sala',i.id)}},0);
   app.innerHTML=`<div style="max-width:760px;margin:0 auto" class="stack">
-    <div class="video" style="aspect-ratio:16/9"><div class="tagtl"><span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Gravando</span>${i.consent==='full'?'<span class="pill terra">Análise autorizada</span>':''}</div>
+    <div class="video" style="aspect-ratio:16/9"><div class="tagtl"><span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Transcrição ativa</span>${i.consent==='full'?'<span class="pill terra">Análise autorizada</span>':''}</div>
       <div style="color:#bbb;text-align:center"><div class="spin" style="width:28px;height:28px;margin-bottom:10px"></div><div>Aguardando o recrutador entrar…</div></div><div class="self">Você</div></div>
     <div class="card row"><div style="flex:1"><b>${esc(i.vaga)}</b><div class="small muted">${esc(S.settings.empresa)} · código ${esc(i.code)}</div></div><button class="btn danger sm" data-go="candidato">Sair</button></div>
     <div class="card small muted">Protótipo: esta é a tela que o candidato vê, uma videochamada comum. <button class="btn sm dark" id="backRec" style="margin-left:6px">Voltar para a área do recrutador</button></div>
@@ -703,24 +723,31 @@ function vSala(){
     <span class="pill gray">Total <span class="timer" id="totTime">00:00</span></span>
     <button class="btn sm primary" id="bEnd">${icon('stop')} Encerrar</button>
   </div>
-  ${!i.consent?`<div class="card row" style="margin-bottom:14px;background:var(--warn-l);border-color:#F0D9A8"><div style="flex:1"><b>Aguardando o candidato aceitar o termo pelo link.</b><div class="small" id="consWait">Verificando automaticamente…</div></div><button class="btn sm" id="consCheck">Verificar agora</button><button class="btn sm ghost" id="simFull">Simular: autorizou</button><button class="btn sm ghost" id="simBasic">Simular: só gravação</button></div>`:''}
+  ${!i.consent?`<div class="card row" style="margin-bottom:14px;background:var(--warn-l);border-color:#F0D9A8"><div style="flex:1"><b>Aguardando o candidato aceitar o termo pelo link.</b><div class="small" id="consWait">Verificando automaticamente…</div></div><button class="btn sm" id="consCheck">Verificar agora</button>${i.demo?'<button class="btn sm ghost" id="simFull">Simular: autorizou</button><button class="btn sm ghost" id="simBasic">Simular: só transcrição</button>':''}</div>`:''}
   <div class="room" id="roomGrid">
     <div class="stack">
       <div class="video" id="vid">
-        <div class="tagtl">${F.gravacao?'<span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Gravando</span>':''}<span class="pill" style="background:rgba(255,255,255,.15);color:#fff" id="modeTag">Modo demonstração</span></div>
-        <svg class="demo-face breathe" id="demoFace" viewBox="0 0 200 200" aria-label="Candidata (demonstração)" role="img"><circle cx="100" cy="78" r="40" fill="#8E7F74"/><path d="M30 200c6-50 36-74 70-74s64 24 70 74z" fill="#6E625A"/><path id="mouth" d="M84 92 Q100 100 116 92" stroke="#3A322D" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="86" cy="74" r="3.5" fill="#3A322D"/><circle cx="114" cy="74" r="3.5" fill="#3A322D"/><path id="browL" d="M78 64 L92 62" stroke="#3A322D" stroke-width="3" stroke-linecap="round"/><path id="browR" d="M108 62 L122 64" stroke="#3A322D" stroke-width="3" stroke-linecap="round"/></svg>
+        <div class="tagtl">${F.gravacao?'<span class="pill" style="background:#C2412D;color:#fff"><span class="dot rec"></span>Transcrevendo</span>':''}<span class="pill" style="background:rgba(255,255,255,.15);color:#fff" id="modeTag">${i.demo?'Modo demonstração':'Chamada'}</span></div>
+        <svg class="demo-face breathe" id="demoFace" style="${i.demo?'':'display:none'}" viewBox="0 0 200 200" aria-label="Candidata (demonstração)" role="img"><circle cx="100" cy="78" r="40" fill="#8E7F74"/><path d="M30 200c6-50 36-74 70-74s64 24 70 74z" fill="#6E625A"/><path id="mouth" d="M84 92 Q100 100 116 92" stroke="#3A322D" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="86" cy="74" r="3.5" fill="#3A322D"/><circle cx="114" cy="74" r="3.5" fill="#3A322D"/><path id="browL" d="M78 64 L92 62" stroke="#3A322D" stroke-width="3" stroke-linecap="round"/><path id="browR" d="M108 62 L122 64" stroke="#3A322D" stroke-width="3" stroke-linecap="round"/></svg>
         <video id="cam" playsinline muted style="display:none;position:absolute;inset:0"></video>
+        <audio id="rAudio" autoplay playsinline></audio>
+        <button class="btn primary unlock" id="bUnlock" style="display:none">Ativar som do candidato</button>
         <div class="caption" id="cap"></div>
-        <div id="waitC" style="position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;color:#bbb;text-align:center;padding:20px"><div class="spin" style="width:28px;height:28px;margin-bottom:10px"></div><div>Aguardando ${esc(i.candidato.split(' ')[0])} entrar pelo link do candidato…</div><div class="xs" style="margin-top:6px">Código ${esc(i.code)}</div></div>
+        <div id="waitC" style="position:absolute;inset:0;display:${i.demo?'none':'flex'};flex-direction:column;align-items:center;justify-content:center;color:#bbb;text-align:center;padding:20px"><div class="spin" style="width:28px;height:28px;margin-bottom:10px"></div><div id="waitTxt">Aguardando ${esc(i.candidato.split(' ')[0])} entrar pelo link do candidato…</div><div class="xs" style="margin-top:6px">Código ${esc(i.code)}</div></div>
         <div class="self" style="overflow:hidden;padding:0">Você<video id="selfv" autoplay playsinline muted style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video></div>
       </div>
       <div class="row">
         <button class="btn sm primary" id="bOnline">${icon('cam')} Chamada online</button>
-        <button class="btn sm dark" id="bPlay">${icon('play')} Iniciar demonstração</button>
-        <button class="btn sm" id="bCam">${icon('cam')} Usar minha câmera</button>
+        ${i.demo?`<button class="btn sm dark" id="bPlay">${icon('play')} Iniciar demonstração</button>`:''}
+        <button class="btn sm ghost" id="bCam">${icon('cam')} Testar câmera aqui</button>
         <button class="btn sm ghost" id="bWide">Ampliar vídeo</button>
-        <span class="xs muted" id="camMsg"></span>
       </div>
+      <div class="callbar" id="callBar" style="display:none">
+        <button class="btn sm" id="bMic" aria-pressed="false">${MIC_ON}</button><span class="meter" id="rMeter" title="Seu microfone"><i></i></span>
+        <button class="btn sm" id="bCamT" aria-pressed="false">${CAM_ON}</button>
+        <span class="xs muted">Som do candidato</span><span class="meter" id="cMeter" title="Áudio do candidato"><i></i></span>
+      </div>
+      <p class="xs muted" id="camMsg" style="margin:0"></p>
       ${F.gravacao?`<div class="panel"><div class="panel-h"><h3>Transcrição ao vivo</h3><span class="spacer"></span><button class="btn sm ghost" id="bSpk" style="display:none">Falando: candidato</button></div><div class="transcript" id="tr" aria-live="polite"></div></div>`:''}
       ${F.marcacao?`<div class="panel"><div class="panel-h"><h3>Marcação rápida</h3><span class="xs muted">fica ligada ao momento da conversa</span></div><div class="marks">${MARKS.map(m=>`<button class="btn sm ghost" data-mk="${esc(m)}">+ ${esc(m)}</button>`).join('')}<button class="btn sm ghost" id="bNote">+ Nota</button></div><div id="mkList" class="small muted" style="margin-top:8px"></div></div>`:''}
     </div>
@@ -753,7 +780,7 @@ function vSala(){
       </div>
     </div>
   </div>`;
-  if(!i.consent){$('#simFull').onclick=()=>{i.consent='full';S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice:'full',at:new Date().toISOString(),versao:CONSENT_VERSION,simulado:true});save();vSala()};$('#simBasic').onclick=()=>{i.consent='basic';S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice:'basic',at:new Date().toISOString(),versao:CONSENT_VERSION,simulado:true});save();vSala()}}
+  if(!i.consent&&i.demo){$('#simFull').onclick=()=>{i.consent='full';S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice:'full',at:new Date().toISOString(),versao:CONSENT_VERSION,simulado:true});save();vSala()};$('#simBasic').onclick=()=>{i.consent='basic';S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice:'basic',at:new Date().toISOString(),versao:CONSENT_VERSION,simulado:true});save();vSala()}}
   renderTranscript(); renderInds(); renderChecklist(); renderRoteiro(); renderMarks(); updateBlock(); renderLive();
   const tabBtns=[...app.querySelectorAll('[data-tab]')];
   const showTab=k=>{tabBtns.forEach(b=>{const on=b.dataset.tab===k;b.classList.toggle('on',on);b.setAttribute('aria-selected',on);if(on){const bd=b.querySelector('.badge');if(bd)bd.remove()}});app.querySelectorAll('[data-tabp]').forEach(p=>p.classList.toggle('on',p.dataset.tabp===k));room.tab=k};
@@ -762,7 +789,7 @@ function vSala(){
   const bw=$('#bWide'); if(bw) bw.onclick=()=>{const g=$('#roomGrid');const w=g.classList.toggle('wide');bw.textContent=w?'Vídeo com painéis ao lado':'Ampliar vídeo'};
   const bl=$('#bLive'); if(bl) bl.onclick=()=>{room.liveOn=!room.liveOn;bl.innerHTML=room.liveOn?icon('pause')+' Pausar preenchimento':icon('spark')+' Ativar preenchimento ao vivo';if(room.liveOn)liveUpdate(true)};
   const bln=$('#bLiveNow'); if(bln) bln.onclick=()=>liveUpdate(true);
-  $('#bPlay').onclick=toggleDemo;
+  const bpl=$('#bPlay'); if(bpl) bpl.onclick=toggleDemo;
   $('#bCam').onclick=startCam;
   $('#bOnline').onclick=()=>{if(room.mode==='online'){stopCam();return}startOnline()};
   $('#bEnd').onclick=()=>confirmBox('Encerrar a entrevista?','Encerrar',endInterview);
@@ -773,6 +800,7 @@ function vSala(){
   const bn=$('#bNote'); if(bn) bn.onclick=()=>modal(`<h3>Nota rápida</h3><label class="sr" for="noteIn">Nota</label><textarea id="noteIn" placeholder="Ex.: confirmar datas do último emprego"></textarea><p id="noteErr" class="small" style="color:#A3301E;min-height:18px"></p><div class="row"><span class="spacer"></span><button class="btn ghost" data-m="no">Cancelar</button><button class="btn primary" data-m="ok">Salvar</button></div>`,b=>{const ta=b.querySelector('#noteIn');ta.focus();ta.oninput=()=>b.querySelector('#noteErr').textContent='';b.querySelector('[data-m=no]').onclick=closeModal;b.querySelector('[data-m=ok]').onclick=()=>{if(!ta.value.trim()){b.querySelector('#noteErr').textContent='Escreva a nota primeiro.';return}addMark('Nota',ta.value.trim());closeModal()}});
   const spk=$('#bSpk'); if(spk) spk.onclick=()=>{room.speaker=room.speaker==='C'?'R':'C';spk.textContent='Falando: '+(room.speaker==='C'?'candidato':'você')};
   room.tick=setInterval(tick,250);
+  if(!i.demo&&i.status!=='concluida'&&/^https?:/.test(location.protocol)&&!room.autoStarted){room.autoStarted=true;setTimeout(()=>{if(room&&room.mode==='demo'&&view==='sala')startOnline()},300)}
   if(!i.consent){
     const check=async manual=>{
       if(!room||view!=='sala'||curId!==i.id||i.consent)return;
@@ -798,6 +826,7 @@ function tick(){
   const bt=$('#blkTime'); if(bt) bt.textContent=fmt(room.elapsed-room.blockT0);
 }
 function toggleDemo(){
+  if(!$('#bPlay'))return;
   if(room.mode!=='demo'){toast('Desligue a câmera para usar a demonstração');return}
   room.running=!room.running;
   $('#bPlay').innerHTML=room.running?icon('pause')+' Pausar':icon('play')+' Continuar demonstração';
@@ -806,7 +835,7 @@ function demoStep(){
   const i=cur();
   while(room.demoIdx<DEMO.length&&DEMO[room.demoIdx].t<=room.elapsed){
     const ev=DEMO[room.demoIdx++];
-    if(ev.end){room.running=false;$('#bPlay').innerHTML=icon('play')+' Demonstração concluída';$('#cap').textContent='';toast('Demonstração concluída. Encerre para ver o parecer.');continue}
+    if(ev.end){room.running=false;const bp=$('#bPlay');if(bp)bp.innerHTML=icon('play')+' Demonstração concluída';$('#cap').textContent='';toast('Demonstração concluída. Encerre para ver o parecer.');continue}
     if(ev.text){addLine(ev.who,ev.text); $('#cap').textContent=(ev.who==='C'?'Ana: ':'Você: ')+ev.text;
       if(ev.who==='R'){markAskedByText(ev.text)}}
     if(ev.comp){const c=i.competencias.find(x=>x.nome===ev.comp[0]); if(c&&c.status!=='ok'){c.status=ev.comp[1]==='ok'?'ok':'andamento';renderChecklist();save()}}
@@ -824,13 +853,6 @@ function animateFace(){
 }
 function drawBars(){
   for(const k in EMO){const b=$('#b_'+k);if(!b)return;const v=Math.min(1,room.levels[k]);b.style.width=(v*100).toFixed(0)+'%';$('#p_'+k).textContent=Math.round(v*100)+'%'}
-}
-function addLine(who,text,interim){
-  const i=cur(); if(!i.features.gravacao&&!interim){i.transcript.push({t:now(),who,text});save();return}
-  if(interim){const tr=$('#tr');if(!tr)return;let el=$('#interim');if(!el){el=document.createElement('div');el.id='interim';el.className='tl interim';tr.appendChild(el)}el.textContent=text;tr.scrollTop=tr.scrollHeight;return}
-  const ie=$('#interim'); if(ie) ie.remove();
-  i.transcript.push({t:now(),who,text}); save(); renderTranscript();
-  if(room&&room.liveOn&&who==='C'&&i.transcript.filter(l=>l.who==='C').length-room.liveCount>=2) liveUpdate();
 }
 function renderLive(){
   const box=$('#liveBox'); if(!box)return; const i=cur(); const t=tplOf(i);
@@ -885,32 +907,65 @@ function fallbackSections(i,secs){
   i.secAuto=i.secAuto||{};
   secs.forEach(s=>{const cur=i.secoes[s.id];if(map[s.id]&&(!cur||cur===i.secAuto[s.id])){i.secoes[s.id]=map[s.id];i.secAuto[s.id]=map[s.id]}});
 }
+function addLine(who,text,interim,at){
+  const i=cur(); const t=at!=null?at:now();
+  if(!i.features.gravacao&&!interim){i.transcript.push({t,who,text});i.transcript.sort((a,b)=>a.t-b.t);save();return}
+  if(interim){const tr=$('#tr');if(!tr)return;let el=$('#interim');if(!el){el=document.createElement('div');el.id='interim';el.className='tl interim';tr.appendChild(el)}el.textContent=text;tr.scrollTop=tr.scrollHeight;return}
+  const ie=$('#interim'); if(ie) ie.remove();
+  i.transcript.push({t,who,text}); i.transcript.sort((a,b)=>a.t-b.t); save();
+  if(who==='C') refreshIndCtx(i);
+  renderTranscript(); if(who==='C') renderInds();
+  if(room&&room.liveOn&&who==='C'&&i.transcript.filter(l=>l.who==='C').length-room.liveCount>=2) liveUpdate();
+}
+/* liga cada indício ao trecho que o candidato falava naquele momento */
+function indCtx(i,x){
+  let best=-1,bd=1e9;
+  i.transcript.forEach((l,k)=>{if(l.who!=='C')return;const d=x.t<l.t?l.t-x.t:(x.t-l.t>14?x.t-l.t:0);if(d<bd&&d<=3){bd=d;best=k}});
+  if(best<0)return {idx:-1,line:null,inc:false};
+  const line=i.transcript[best], tx=line.text.toLowerCase();
+  const inc=!!(i.features.incongruencia&&NEG.includes(x.emo)&&POS_WORDS.some(w=>tx.includes(w)));
+  return {idx:best,line,inc};
+}
+function refreshIndCtx(i){
+  let newInc=null;
+  i.indicios.forEach(x=>{const c=indCtx(i,x);x.lineIdx=c.idx;x.snippet=c.line?c.line.text:'';if(c.inc&&!x.inc&&!x.incNotified){newInc=x;x.incNotified=true}x.inc=c.inc});
+  save();
+  if(newInc&&i.features.sugestoes&&room){exitRapport();setSuggestion(EMO[newInc.emo].dica.split(': ').slice(1).join(': ').replace(/^"|"$/g,'')||EMO[newInc.emo].dica,'Incongruência: fala positiva com indício de '+EMO[newInc.emo].nome.toLowerCase()+' em '+fmt(newInc.t)+'.')}
+}
 function renderTranscript(){
   const tr=$('#tr'); if(!tr)return; const i=cur();
-  const incTimes=i.indicios.filter(x=>x.inc).map(x=>x.lineIdx);
-  tr.innerHTML=i.transcript.length?i.transcript.map((l,idx)=>`<div class="tl ${incTimes.includes(idx)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Você'}:</b> ${esc(l.text)}</div>`).join(''):'<p class="small muted">A transcrição aparece aqui.</p>';
+  const incIdx=i.indicios.filter(x=>x.inc).map(x=>x.lineIdx);
+  tr.innerHTML=i.transcript.length?i.transcript.map((l,idx)=>`<div class="tl ${incIdx.includes(idx)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Você'}:</b> ${esc(l.text)}</div>`).join(''):'<p class="small muted">A transcrição aparece aqui (com alguns segundos de atraso).</p>';
   tr.scrollTop=tr.scrollHeight;
 }
 function addIndicio(emo,v,dur){
   const i=cur(); const t=now();
-  if(room.lastEv[emo]&&t-room.lastEv[emo]<2.5)return; room.lastEv[emo]=t;
-  let inc=false,lineIdx=-1;
-  if(i.features.incongruencia&&NEG.includes(emo)){
-    for(let k=i.transcript.length-1;k>=0;k--){const l=i.transcript[k]; if(t-l.t>6)break; if(l.who==='C'){const tx=l.text.toLowerCase(); if(POS_WORDS.some(w=>tx.includes(w))){inc=true;lineIdx=k} break}}
-  }
-  const ind={t,emo,v:+v.toFixed(2),micro:dur<500,inc,lineIdx};
-  i.indicios.push(ind); save(); renderInds(); if(inc) renderTranscript();
+  const cool=room.mode==='demo'?2.5:10;
+  if(room.lastEv[emo]&&t-room.lastEv[emo]<cool)return; room.lastEv[emo]=t;
+  const ind={t,emo,v:+v.toFixed(2),micro:dur<500&&v>=0.65,inc:false,lineIdx:-1,snippet:''};
+  i.indicios.push(ind); refreshIndCtx(i); renderInds(); renderTranscript();
   if(room&&room.flagTab) room.flagTab('ind');
-  if(inc&&i.features.sugestoes){exitRapport();setSuggestion(EMO[emo].dica.split(': ').slice(1).join(': ').replace(/^"|"$/g,'')||EMO[emo].dica,'Incongruência: fala positiva com indício de '+EMO[emo].nome.toLowerCase()+'.')}
 }
 function renderInds(){
   const box=$('#inds'); if(!box)return; const i=cur();
-  const list=[...i.indicios].reverse().slice(0,8);
+  const list=i.indicios.map((x,k)=>[x,k]).reverse().slice(0,8);
   if(!list.length)return;
-  box.innerHTML=list.map(x=>{const e=EMO[x.emo];return `<div class="ind ${x.inc?'inc':''}">
-    ${x.inc?'<b style="color:var(--warn)">Incongruência</b> · ':''}<b style="color:${e.cor}">Indício de ${e.nome.toLowerCase()}</b> <span class="muted">· ${fmt(x.t)} · ${Math.round(x.v*100)}%${x.micro?' · microexpressão':''}</span>
+  box.innerHTML=list.map(([x,k])=>{const e=EMO[x.emo];const recent=now()-x.t<15;return `<div class="ind ${x.inc?'inc':''}">
+    ${x.inc?'<b style="color:var(--warn)">Incongruência</b> · ':''}<b style="color:${e.cor}">Indício de ${e.nome.toLowerCase()}</b> <span class="muted">· ${fmt(x.t)} · ${Math.round(x.v*100)}%${x.micro?' · breve':''}</span>
     <div class="xs muted">${e.au}</div>
-    <div class="xs" style="margin-top:2px">${esc(e.dica)}</div></div>`}).join('');
+    <div class="xs" style="margin-top:4px">${x.snippet?`Durante: <i>“${esc(x.snippet.length>140?x.snippet.slice(0,140)+'…':x.snippet)}”</i>`:(recent?'<span class="muted">Aguardando a transcrição deste trecho…</span>':'<span class="muted">Sem fala do candidato neste momento.</span>')}</div>
+    ${i.features.sugestoes?`<button class="btn sm ghost" data-indq="${k}" style="margin-top:6px">${icon('spark')} Pergunta sobre este momento</button>`:''}</div>`}).join('');
+  box.querySelectorAll('[data-indq]').forEach(b=>b.onclick=()=>askAboutInd(i,i.indicios[+b.dataset.indq],b));
+}
+async function askAboutInd(i,x,btn){
+  const e=EMO[x.emo]; exitRapport();
+  const fb=()=>setSuggestion(e.dica.split(': ').slice(1).join(': ').replace(/^"|"$/g,'')||e.dica,'Sugestão genérica para indício de '+e.nome.toLowerCase()+'.');
+  if(!aiOn()||!x.snippet){fb();return}
+  btn.innerHTML='<span class="spin"></span>';btn.disabled=true;
+  try{const r=await ai(`Você é um copiloto de entrevista por competências no Brasil. No momento ${fmt(x.t)}, enquanto o candidato dizia "${x.snippet}", a plataforma registrou um possível indício de ${e.nome.toLowerCase()} (${e.au}). Esse indício é só uma hipótese, que pode estar errada. Sugira UMA pergunta curta, aberta e respeitosa, em português do Brasil, que ajude o recrutador a entender melhor ESSE assunto que o candidato estava contando, sem mencionar emoções, expressões ou o indício. Vaga: ${i.vaga}.\nResponda só em JSON: {"pergunta":"...","motivo":"1 frase curta"}`,true);
+    if(r&&r.pergunta)setSuggestion(r.pergunta,(r.motivo?r.motivo+' ':'')+'(sobre o trecho de '+fmt(x.t)+')');else fb();
+  }catch(err){aiErr(err);fb()}
+  btn.innerHTML=icon('spark')+' Pergunta sobre este momento';btn.disabled=false;
 }
 function renderChecklist(){
   const box=$('#cl'); if(!box)return; const i=cur();
@@ -975,7 +1030,7 @@ async function startCam(){
   try{
     room.stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:true});
   }catch(e){msg.textContent='Câmera bloqueada neste ambiente. Abra o arquivo do Nuance no Chrome do computador para testar ao vivo.';return}
-  room.running=false; room.mode='cam'; $('#bPlay').innerHTML=icon('play')+' Demonstração';
+  room.running=false; room.mode='cam'; const bp2=$('#bPlay'); if(bp2)bp2.innerHTML=icon('play')+' Demonstração';
   const v=$('#cam'); v.srcObject=room.stream; v.style.display='block'; $('#demoFace').style.display='none'; await v.play().catch(()=>{});
   $('#modeTag').textContent='Câmera ao vivo'; $('#bCam').innerHTML=icon('stop')+' Desligar câmera'; room.running=true;
   const spk=$('#bSpk'); if(spk) spk.style.display='';
@@ -987,18 +1042,20 @@ async function startCam(){
       const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
       const fs=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
       room.lm=await vision.FaceLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',delegate:'GPU'},outputFaceBlendshapes:true,runningMode:'VIDEO',numFaces:1});
-      msg.textContent='Leitura de expressões ativa.'; faceLoop();
+      room.calib={n:0,sum:{}}; msg.textContent='Calibrando a leitura de expressões (rosto neutro, ~12 s)…'; faceLoop(); setTimeout(()=>{if(msg.textContent.startsWith('Calibrando'))msg.textContent='Leitura de expressões ativa.'},13000);
     }catch(e){msg.textContent='Não foi possível carregar a leitura de expressões aqui.'}
   } else msg.textContent='';
 }
 function stopCam(){
   if(room&&room.online) stopOnline();
+  if(room)['txR','txC'].forEach(k=>{if(room[k]){room[k].stop();room[k]=null}});
+  if(room){room.stopMeter&&room.stopMeter();room.stopRMeter&&room.stopRMeter()}
   if(room.stream)room.stream.getTracks().forEach(t=>t.stop()); room.stream=null;
   if(room.raf)cancelAnimationFrame(room.raf); room.raf=null; room.lm=null;
   if(room.recog){room.recog._stop=true;try{room.recog.stop()}catch(e){}} room.recog=null;
   room.mode='demo'; room.running=false;
   const v=$('#cam'); if(v){v.style.display='none';v.srcObject=null} const f=$('#demoFace'); if(f)f.style.display='';
-  const mt=$('#modeTag'); if(mt)mt.textContent='Modo demonstração'; const bc=$('#bCam'); if(bc)bc.innerHTML=icon('cam')+' Usar minha câmera';
+  const mt=$('#modeTag'); const ci=cur(); if(mt)mt.textContent=ci&&ci.demo?'Modo demonstração':'Chamada'; const bc=$('#bCam'); if(bc)bc.innerHTML=icon('cam')+' Testar câmera aqui'; const f2=$('#demoFace'); if(f2&&ci&&!ci.demo)f2.style.display='none';
 }
 function startSpeech(){
   const i=cur(); if(!i.features.gravacao)return;
@@ -1023,32 +1080,44 @@ function faceLoop(){
   step();
 }
 function scoreEkman(b){
-  const g=k=>b[k]||0, avg=(...k)=>k.reduce((s,x)=>s+g(x),0)/k.length;
+  // 1) calibração: aprende o rosto neutro da pessoa nos primeiros ~12 s
+  const c=room.calib;
+  if(c&&!c.done){if(!c.start)c.start=performance.now();for(const k in b)c.sum[k]=(c.sum[k]||0)+b[k];c.n++;
+    if(performance.now()-c.start>12000&&c.n>40){room.base={};for(const k in c.sum)room.base[k]=c.sum[k]/c.n;c.done=true;const m=$('#camMsg');if(m)m.textContent=m.textContent.replace(' Calibrando a leitura de expressões (rosto neutro)…',' Leitura de expressões ativa.')}
+    return}
+  const base=room.base||{};
+  const g=k=>Math.max(0,(b[k]||0)-(base[k]||0));
+  const avg=(...k)=>k.reduce((s,x)=>s+g(x),0)/k.length;
+  // 2) enquanto a pessoa fala, a boca se mexe por causa da fala: reduz o peso dos sinais da boca
+  const talking=room.remoteLevel?room.remoteLevel.read()>0.012:false;
+  const mw=talking?0.25:1;
   const smile=avg('mouthSmileLeft','mouthSmileRight'), cheek=avg('cheekSquintLeft','cheekSquintRight');
-  const frown=avg('mouthFrownLeft','mouthFrownRight'), browIn=g('browInnerUp'), browOut=avg('browOuterUpLeft','browOuterUpRight');
+  const frown=avg('mouthFrownLeft','mouthFrownRight')*mw, browIn=g('browInnerUp'), browOut=avg('browOuterUpLeft','browOuterUpRight');
   const browDown=avg('browDownLeft','browDownRight'), eyeWide=avg('eyeWideLeft','eyeWideRight'), eyeSq=avg('eyeSquintLeft','eyeSquintRight');
-  const sneer=avg('noseSneerLeft','noseSneerRight'), upper=avg('mouthUpperUpLeft','mouthUpperUpRight');
-  const stretch=avg('mouthStretchLeft','mouthStretchRight'), press=avg('mouthPressLeft','mouthPressRight');
+  const sneer=avg('noseSneerLeft','noseSneerRight'), upper=avg('mouthUpperUpLeft','mouthUpperUpRight')*mw;
+  const stretch=avg('mouthStretchLeft','mouthStretchRight')*mw, press=avg('mouthPressLeft','mouthPressRight')*mw, jaw=g('jawOpen')*mw;
+  const asym=(Math.abs(g('mouthSmileLeft')-g('mouthSmileRight'))*1.6+Math.abs(g('mouthDimpleLeft')-g('mouthDimpleRight'))*1.0)*mw;
   const raw={
-    alegria:Math.min(1,smile*0.75+cheek*0.6),
-    tristeza:Math.min(1,browIn*0.6+frown*0.9)*(1-smile),
-    surpresa:Math.min(1,(browIn+browOut)*0.35+eyeWide*0.5+g('jawOpen')*0.45)*(1-browDown),
-    medo:Math.min(1,browIn*0.4+eyeWide*0.6+stretch*0.7)*(1-smile),
-    raiva:Math.min(1,browDown*0.8+eyeSq*0.3+press*0.5)*(1-smile),
-    nojo:Math.min(1,sneer*0.9+upper*0.6),
-    desprezo:Math.min(1,Math.abs(g('mouthSmileLeft')-g('mouthSmileRight'))*1.8+Math.abs(g('mouthDimpleLeft')-g('mouthDimpleRight'))*1.2)
+    alegria:Math.min(1,smile*(talking?0.5:0.8)+cheek*0.8),
+    tristeza:Math.min(1,browIn*0.7+frown*0.9)*(1-Math.min(1,smile*2)),
+    surpresa:Math.min(1,(browIn+browOut)*0.45+eyeWide*0.7+jaw*0.4)*(1-browDown),
+    medo:Math.min(1,browIn*0.45+eyeWide*0.7+stretch*0.6)*(1-Math.min(1,smile*2)),
+    raiva:Math.min(1,browDown*0.9+eyeSq*0.3+press*0.5)*(1-Math.min(1,smile*2)),
+    nojo:Math.min(1,sneer*1.0+upper*0.6),
+    desprezo:Math.min(1,asym)*(1-Math.min(1,cheek*1.5))
   };
-  const t=performance.now();
+  const t=performance.now(), ON=0.55, OFF=0.35;
   for(const k in raw){
-    room.levels[k]=room.levels[k]*0.6+raw[k]*0.4; const v=room.levels[k];
+    room.levels[k]=room.levels[k]*0.7+raw[k]*0.3; const v=room.levels[k];
     const a=room.active[k];
-    if(v>0.45&&!a) room.active[k]={start:t,peak:v};
-    else if(a){a.peak=Math.max(a.peak,v); if(v<0.3){const dur=t-a.start; if(dur>120) addIndicio(k,a.peak,dur); delete room.active[k]}}
+    if(v>ON&&!a) room.active[k]={start:t,peak:v};
+    else if(a){a.peak=Math.max(a.peak,v); if(v<OFF){const dur=t-a.start; if(dur>300) addIndicio(k,a.peak,dur); delete room.active[k]}}
   }
   drawBars();
 }
 function stopRoom(){ if(!room)return; clearInterval(room.tick); clearInterval(room.consentPoll); stopCam(); const i=cur(); if(i){i.duracao=room.elapsed;save()} room=null; }
 function endInterview(){
+  if(room&&room.online) stopOnline(true);
   const i=cur(); i.duracao=room.elapsed; i.status='concluida'; stopRoom(); save(); go('parecer',i.id);
 }
 
@@ -1069,40 +1138,122 @@ async function joinChannel(code,onMsg){
 }
 function recordConsent(i,choice){if(i.consent===choice)return false;i.consent=choice;S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice,at:new Date().toISOString(),versao:CONSENT_VERSION,online:true});save();return true}
 
+/* mídia: ICE (STUN/TURN), áudio remoto, controles, medidor */
+let iceCache=null;
+async function getIce(){
+  if(iceCache)return iceCache;
+  try{const sb=await withTimeout(getSb(),6000);const res=await withTimeout(sb.functions.invoke('nuance-ai',{body:{action:'ice'}}),6000);if(res.data&&res.data.iceServers){iceCache={iceServers:res.data.iceServers,turn:!!res.data.turn};return iceCache}}catch(e){}
+  return {...ICE,turn:false};
+}
+const MEDIA={audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:{width:{ideal:960},height:{ideal:540},facingMode:'user'}};
+let audioCtx=null;
+function actx(){if(!audioCtx){const C=window.AudioContext||window.webkitAudioContext;if(C)audioCtx=new C()}if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});return audioCtx}
+function levelOf(stream){
+  const ctx=actx(); if(!ctx||!stream.getAudioTracks().length)return null;
+  const src=ctx.createMediaStreamSource(stream), an=ctx.createAnalyser(); an.fftSize=1024; src.connect(an);
+  const buf=new Float32Array(an.fftSize);
+  return {read(){an.getFloatTimeDomainData(buf);let s=0;for(let k=0;k<buf.length;k++)s+=buf[k]*buf[k];return Math.sqrt(s/buf.length)},close(){try{src.disconnect()}catch(e){}}};
+}
+function meter(el,lv,hold){ // barra de nível do microfone
+  if(!el||!lv)return null; const bar=el.querySelector('i');
+  const t=setInterval(()=>{const v=Math.min(1,lv.read()*6);bar.style.width=Math.round(v*100)+'%';if(hold)hold(v)},120);
+  return ()=>clearInterval(t);
+}
+function playRemote(audioEl,stream,unlockBtn){
+  audioEl.srcObject=stream; audioEl.muted=false; audioEl.volume=1;
+  const p=audioEl.play(); if(p&&p.catch)p.catch(()=>{ if(unlockBtn){unlockBtn.style.display='';unlockBtn.onclick=()=>{actx();audioEl.play().then(()=>{unlockBtn.style.display='none'}).catch(()=>{})}} });
+}
+function toggleTrack(stream,kind,btn,labels){
+  const tr=stream&&stream.getTracks().find(t=>t.kind===kind); if(!tr)return;
+  tr.enabled=!tr.enabled; btn.classList.toggle('off',!tr.enabled); btn.innerHTML=tr.enabled?labels[0]:labels[1]; btn.setAttribute('aria-pressed',String(!tr.enabled));
+}
+const MIC_ON=`${'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>'} Microfone`;
+const MIC_OFF=`${'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l18 18M9 9v2a3 3 0 0 0 5 2M15 10V6a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M19 11a7 7 0 0 1-.6 2.8M12 18v3"/></svg>'} Mudo`;
+const CAM_ON=`${'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 10l5-3v10l-5-3M3 7h12v10H3z"/></svg>'} Câmera`;
+const CAM_OFF=`${'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 3l18 18M15 10l5-3v10M15 15v2H5M3 7h4"/></svg>'} Câmera desligada`;
+
+/* transcrição pelo servidor (Whisper), uma voz por stream */
+const HALLU=/amara\.org|legendas pela|inscreva-se|obrigad[oa] por assistir|tchau,? tchau|^\W*$|^(obrigad[oa]\.?|tchau\.?)$/i;
+let txMode=null; // null desconhecido, 'server', 'off'
+function startTranscriber(stream,who,onText){
+  if(typeof MediaRecorder==='undefined'||!stream.getAudioTracks().length)return null;
+  const aStream=new MediaStream(stream.getAudioTracks());
+  const lv=levelOf(aStream); const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(m=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||'';
+  let stopped=false, rec=null, peak=0, voiced=0, sampler=null;
+  const cycle=()=>{
+    if(stopped)return; if(aStream.getAudioTracks().every(t=>t.readyState==='ended')){stopped=true;return} peak=0; voiced=0; const t0=now();
+    try{rec=new MediaRecorder(aStream,mime?{mimeType:mime}:{})}catch(e){return}
+    const chunks=[]; rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+    rec.onstop=async()=>{
+      const p=peak, v=voiced; if(!stopped)cycle();
+      const ctxOk=audioCtx&&audioCtx.state==='running';
+      if(txMode==='off'||!chunks.length||(ctxOk&&(p<0.01||v<3)))return;
+      const blob=new Blob(chunks,{type:mime||'audio/webm'});
+      try{
+        const sb=await getSb(); const fd=new FormData(); fd.append('action','transcribe'); fd.append('audio',blob,'fala.'+(mime.includes('mp4')?'mp4':'webm'));
+        const res=await withTimeout(sb.functions.invoke('nuance-ai',{body:fd}),30000);
+        if(res.error){let code='upstream';try{code=(await res.error.context.json()).error}catch(x){} if(code==='missing_key'){txMode='off';onText(null,'missing_key')} return}
+        txMode='server'; const text=String((res.data&&res.data.text)||'').trim();
+        if(text&&!HALLU.test(text))onText(text,null,t0);
+      }catch(e){}
+    };
+    try{rec.start()}catch(e){stopped=true;return} setTimeout(()=>{try{rec.state!=='inactive'&&rec.stop()}catch(e){}},10000);
+  };
+  if(lv) sampler=setInterval(()=>{const x=lv.read();peak=Math.max(peak,x);if(x>0.008)voiced++},100);
+  cycle();
+  return {stop(){stopped=true;clearInterval(sampler);try{rec&&rec.state!=='inactive'&&rec.stop()}catch(e){}lv&&lv.close()},level:()=>lv?lv.read():0};
+}
+
 /* recrutador */
 async function startOnline(){
   const i=cur(), msg=$('#camMsg');
   if(room.mode==='cam')stopCam();
-  room.running=false; $('#bPlay').innerHTML=icon('play')+' Demonstração';
+  room.running=false; const bp=$('#bPlay'); if(bp)bp.innerHTML=icon('play')+' Demonstração';
   msg.textContent='Conectando ao servidor…';
   try{await publishRoom(i)}catch(e){msg.textContent='Sem conexão com o servidor. A chamada online funciona pelo link do site (GitHub Pages), não aqui dentro do Claude.';return}
   try{const r=await rpc('nuance_get_room',{p_code:i.code});const row=r&&r[0];if(row&&row.consent&&!i.consent){recordConsent(i,row.consent);vSala();setTimeout(startOnline,50);return}}catch(e){}
-  try{room.stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:true})}catch(e){msg.textContent='Libere a câmera e o microfone no navegador para entrar na chamada.';return}
+  try{room.stream=await navigator.mediaDevices.getUserMedia(MEDIA)}catch(e){msg.textContent='Libere a câmera e o microfone no navegador (ícone de cadeado na barra de endereço) e clique em "Chamada online" de novo.';return}
   room.mode='online'; room.speaker='R'; room.online={pc:null,dc:null,sig:null,remote:false};
   const sv=$('#selfv'); sv.srcObject=room.stream; sv.style.display='block';
   $('#demoFace').style.display='none'; $('#waitC').style.display='flex';
   $('#modeTag').textContent='Chamada online'; $('#bOnline').innerHTML=icon('stop')+' Sair da chamada';
+  $('#callBar').style.display='flex';
+  room.stopMeter=meter($('#rMeter'),levelOf(room.stream));
+  $('#bMic').onclick=()=>toggleTrack(room.stream,'audio',$('#bMic'),[MIC_ON,MIC_OFF]);
+  $('#bCamT').onclick=()=>toggleTrack(room.stream,'video',$('#bCamT'),[CAM_ON,CAM_OFF]);
   try{room.online.sig=await joinChannel(i.code,onRecMsg)}catch(e){msg.textContent='Não consegui abrir o canal da sala. Tente de novo.';return}
-  msg.textContent='Sala aberta. Aguardando '+i.candidato.split(' ')[0]+' entrar pelo link do candidato.';
-  room.running=true; startSpeech();
+  room.ice=await getIce();
+  msg.textContent='Sala aberta. Aguardando '+i.candidato.split(' ')[0]+' entrar pelo link do candidato.'+(room.ice.turn?'':' (Sem servidor de retransmissão: em rede corporativa a conexão pode falhar.)');
+  room.running=true;
+  if(i.features.gravacao) room.txR=startTranscriber(room.stream,'R',(text,err,t0)=>{if(err==='missing_key'){fallbackSpeechR();return}if(text)addLine('R',text,false,t0)});
+}
+function fallbackSpeechR(){ // sem chave de transcrição: usa o reconhecimento do navegador só para a voz do recrutador
+  if(room&&!room.recog){room.speaker='R';startSpeech();const m=$('#camMsg');if(m)m.textContent+=' Transcrição do servidor indisponível: só a sua voz será transcrita.'}
 }
 async function onRecMsg(p){
-  if(!room||room.mode!=='online')return; const i=cur(), o=room.online;
+  if(!room||room.mode!=='online')return; const i=cur(), o=room.online; if(!o)return;
   if(p.t==='hello'){
     if(p.consent&&recordConsent(i,p.consent)){room.online=null;try{o.pc&&o.pc.close()}catch(e){}try{o.sig&&o.sig.close()}catch(e){}vSala();setTimeout(startOnline,50);return}
-    if(o.pc&&(o.pc.connectionState==='connected'||Date.now()-o.createdAt<12000))return;
+    if(o.pc&&(o.pc.connectionState==='connected'||Date.now()-o.createdAt<15000))return;
     if(o.pc){try{o.pc.close()}catch(e){}}
-    const pc=new RTCPeerConnection(ICE); o.pc=pc; o.remote=false; o.createdAt=Date.now();
+    const pc=new RTCPeerConnection(room.ice||ICE); o.pc=pc; o.remote=false; o.createdAt=Date.now();
     room.stream.getTracks().forEach(t=>pc.addTrack(t,room.stream));
     const dc=pc.createDataChannel('nuance'); o.dc=dc;
-    dc.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}if(m.t==='tx'&&m.text){if(m.final){addLine('C',m.text);$('#cap').textContent=i.candidato.split(' ')[0]+': '+m.text}else addLine('C',m.text,true)}};
     pc.onicecandidate=e=>{if(e.candidate)o.sig.send({t:'ice',to:'C',c:e.candidate.toJSON()})};
-    pc.ontrack=e=>{const v=$('#cam');if(v.srcObject!==e.streams[0]){v.srcObject=e.streams[0];v.muted=false;v.style.transform='none';v.style.display='block';v.play().catch(()=>{});$('#waitC').style.display='none';o.remote=true;$('#camMsg').textContent='Conectado com '+i.candidato.split(' ')[0]+'.';startEkmanOnRemote()}};
-    pc.onconnectionstatechange=()=>{if(pc.connectionState==='failed'){$('#camMsg').textContent='A conexão falhou. A rede pode estar bloqueando a chamada; tente com uma das pessoas fora da rede da empresa (4G).'}if(pc.connectionState==='disconnected'||pc.connectionState==='closed'){$('#waitC').style.display='flex';o.remote=false}};
+    pc.ontrack=e=>{
+      const st=e.streams[0]; if(!st||o.remoteStream===st)return; o.remoteStream=st;
+      const v=$('#cam'); v.srcObject=st; v.muted=true; v.style.transform='none'; v.style.display='block'; v.play().catch(()=>{});
+      playRemote($('#rAudio'),st,$('#bUnlock'));
+      $('#waitC').style.display='none'; o.remote=true; $('#camMsg').textContent='Conectado com '+i.candidato.split(' ')[0]+'.';
+      const lv=levelOf(st); room.remoteLevel=lv; room.stopRMeter&&room.stopRMeter(); room.stopRMeter=meter($('#cMeter'),lv);
+      if(i.features.gravacao&&!room.txC){room.txC=startTranscriber(st,'C',(text,err,t0)=>{if(err==='missing_key'){const m=$('#camMsg');if(m)m.textContent+=' Configure a chave do Groq para transcrever a voz do candidato.';return}if(text){addLine('C',text,false,t0);$('#cap').textContent=i.candidato.split(' ')[0]+': '+text}})}
+      startEkmanOnRemote();
+    };
+    pc.onconnectionstatechange=()=>{const m=$('#camMsg');if(!m)return;if(pc.connectionState==='failed')m.textContent='A conexão falhou: a rede está bloqueando a chamada direta. '+(room.ice&&room.ice.turn?'Tente recarregar.':'Configure o servidor de retransmissão (TURN) ou use uma rede fora da empresa.');if(pc.connectionState==='disconnected'){m.textContent='Conexão instável. Tentando reconectar…'}if(pc.connectionState==='closed'){$('#waitC').style.display='flex';o.remote=false}};
     const off=await pc.createOffer(); await pc.setLocalDescription(off); o.sig.send({t:'offer',sdp:pc.localDescription.toJSON()});
   }else if(p.t==='answer'&&o.pc){try{await o.pc.setRemoteDescription(p.sdp)}catch(e){}}
   else if(p.t==='ice'&&p.to==='R'&&o.pc){try{await o.pc.addIceCandidate(p.c)}catch(e){}}
-  else if(p.t==='bye'){$('#waitC').style.display='flex';$('#camMsg').textContent=i.candidato.split(' ')[0]+' saiu da sala.';o.remote=false}
+  else if(p.t==='bye'){$('#waitC').style.display='flex';$('#camMsg').textContent=i.candidato.split(' ')[0]+' saiu da sala. Se ela voltar, a chamada reconecta sozinha.';o.remote=false;o.remoteStream=null;if(o.pc){try{o.pc.close()}catch(e){}o.pc=null}if(room.txC){room.txC.stop();room.txC=null}}
 }
 async function startEkmanOnRemote(){
   const i=cur(); if(!(i.features.ekman&&i.consent==='full')||room.lm)return;
@@ -1111,61 +1262,68 @@ async function startEkmanOnRemote(){
     const vision=await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
     const fs=await vision.FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
     room.lm=await vision.FaceLandmarker.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',delegate:'GPU'},outputFaceBlendshapes:true,runningMode:'VIDEO',numFaces:1});
-    msg.textContent+=' Leitura de expressões ativa.'; faceLoop();
+    room.calib={n:0,sum:{}}; msg.textContent+=' Calibrando a leitura de expressões (rosto neutro)…'; faceLoop();
   }catch(e){msg.textContent+=' Não foi possível carregar a leitura de expressões.'}
 }
-function stopOnline(){
+function stopOnline(final){
   if(!room||!room.online)return; const o=room.online;
-  try{o.sig&&o.sig.send({t:'bye'})}catch(e){}
-  try{o.pc&&o.pc.close()}catch(e){} try{o.sig&&o.sig.close()}catch(e){}
+  try{o.sig&&o.sig.send({t:final?'end':'bye'})}catch(e){}
+  try{o.pc&&o.pc.close()}catch(e){} setTimeout(()=>{try{o.sig&&o.sig.close()}catch(e){}},300);
   room.online=null;
+  ['txR','txC'].forEach(k=>{if(room[k]){room[k].stop();room[k]=null}});
+  room.stopMeter&&room.stopMeter(); room.stopRMeter&&room.stopRMeter();
+  const ra=$('#rAudio'); if(ra){ra.srcObject=null}
   const sv=$('#selfv'); if(sv){sv.srcObject=null;sv.style.display='none'}
   const w=$('#waitC'); if(w)w.style.display='none';
+  const cb=$('#callBar'); if(cb)cb.style.display='none';
   const b=$('#bOnline'); if(b)b.innerHTML=icon('cam')+' Chamada online';
 }
 
 /* candidato */
 async function candStart(i){
   const st=$('#cStatus'); candStop();
-  const rt=candRT={pc:null,sig:null,stream:null,recog:null,helloT:null,dc:null};
-  try{rt.stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:true})}catch(e){st.textContent='Libere a câmera e o microfone no navegador e toque em "Tentar de novo".';$('#cRetry').style.display='';return}
+  const rt=candRT={pc:null,sig:null,stream:null,helloT:null,dc:null};
+  try{rt.stream=await navigator.mediaDevices.getUserMedia(MEDIA)}catch(e){st.textContent='Libere a câmera e o microfone no navegador e toque em "Tentar de novo".';$('#cRetry').style.display='';return}
   if(candRT!==rt){rt.stream.getTracks().forEach(t=>t.stop());return}
   const lv=$('#lv'); lv.srcObject=rt.stream;
+  rt.stopMeter=meter($('#mMeter'),levelOf(rt.stream));
+  $('#cMic').onclick=()=>toggleTrack(rt.stream,'audio',$('#cMic'),[MIC_ON,MIC_OFF]);
+  $('#cCam').onclick=()=>toggleTrack(rt.stream,'video',$('#cCam'),[CAM_ON,CAM_OFF]);
   try{rt.sig=await joinChannel(i.code,p=>onCandMsg(i,rt,p))}catch(e){st.textContent='Não consegui conectar à sala. Verifique a internet e tente de novo.';$('#cRetry').style.display='';return}
-  st.textContent='Você está na sala. Aguardando o recrutador…';
+  rt.ice=await getIce();
+  st.textContent='Você está na sala. Aguardando o recrutador… Enquanto isso, fale algo e veja se a barra do microfone se mexe.';
   const hello=()=>{if(!rt.pc||rt.pc.connectionState!=='connected')rt.sig.send({t:'hello',consent:i.consent})};
   hello(); rt.helloT=setInterval(hello,3000);
-  if(i.features.gravacao) candSpeech(rt);
+  rt.unload=()=>{try{rt.sig.send({t:'bye'})}catch(e){}}; window.addEventListener('pagehide',rt.unload);
 }
 async function onCandMsg(i,rt,p){
   if(candRT!==rt)return;
   if(p.t==='offer'){
     if(rt.pc){try{rt.pc.close()}catch(e){}}
-    const pc=new RTCPeerConnection(ICE); rt.pc=pc;
+    const pc=new RTCPeerConnection(rt.ice||ICE); rt.pc=pc; rt.remoteStream=null;
     rt.stream.getTracks().forEach(t=>pc.addTrack(t,rt.stream));
     pc.ondatachannel=e=>{rt.dc=e.channel};
     pc.onicecandidate=e=>{if(e.candidate)rt.sig.send({t:'ice',to:'R',c:e.candidate.toJSON()})};
-    pc.ontrack=e=>{const v=$('#rv');if(v&&v.srcObject!==e.streams[0]){v.srcObject=e.streams[0];v.play().catch(()=>{});$('#cvWait').style.display='none';$('#cStatus').textContent='Conectado com o recrutador.'}};
-    pc.onconnectionstatechange=()=>{const s=$('#cStatus');if(!s)return;if(pc.connectionState==='failed')s.textContent='A conexão falhou. Se estiver na rede de uma empresa, tente pelo 4G.';if(pc.connectionState==='disconnected')s.textContent='Conexão interrompida. Tentando reconectar…'};
+    pc.ontrack=e=>{const s=e.streams[0];if(!s||rt.remoteStream===s)return;rt.remoteStream=s;const v=$('#rv');if(v){v.srcObject=s;v.muted=true;v.play().catch(()=>{})}playRemote($('#cAudio'),s,$('#cUnlock'));$('#cvWait').style.display='none';$('#cStatus').textContent='Conectado com o recrutador.'};
+    pc.onconnectionstatechange=()=>{const s=$('#cStatus');if(!s)return;if(pc.connectionState==='failed')s.textContent='A conexão falhou. Se estiver na rede de uma empresa, tente pelo 4G.';if(pc.connectionState==='disconnected')s.textContent='Conexão interrompida. Tentando reconectar…';if(pc.connectionState==='connected')s.textContent='Conectado com o recrutador.'};
     await pc.setRemoteDescription(p.sdp); const ans=await pc.createAnswer(); await pc.setLocalDescription(ans);
     rt.sig.send({t:'answer',sdp:pc.localDescription.toJSON()});
   }else if(p.t==='ice'&&p.to==='C'&&rt.pc){try{await rt.pc.addIceCandidate(p.c)}catch(e){}}
-  else if(p.t==='bye'){const w=$('#cvWait');if(w)w.style.display='flex';const s=$('#cStatus');if(s)s.textContent='O recrutador saiu da chamada.';const v=$('#rv');if(v)v.srcObject=null}
+  else if(p.t==='bye'){const w=$('#cvWait');if(w){w.style.display='flex';w.querySelector('div:last-child').textContent='O recrutador saiu por um momento. Aguarde…'}const s=$('#cStatus');if(s)s.textContent='O recrutador saiu da chamada. Aguarde, a conexão volta sozinha.';const v=$('#rv');if(v)v.srcObject=null;if(rt.pc){try{rt.pc.close()}catch(e){}rt.pc=null}}
+  else if(p.t==='end'){candStop();candEnd(i)}
 }
-function candSpeech(rt){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition; if(!SR)return;
-  const r=new SR(); r.lang='pt-BR'; r.continuous=true; r.interimResults=true; rt.recog=r;
-  const send=(text,final)=>{if(rt.dc&&rt.dc.readyState==='open')rt.dc.send(JSON.stringify({t:'tx',text,final}))};
-  r.onresult=e=>{let interim='';for(let k=e.resultIndex;k<e.results.length;k++){const res=e.results[k];if(res.isFinal)send(res[0].transcript.trim(),true);else interim+=res[0].transcript}if(interim)send(interim,false)};
-  r.onend=()=>{if(candRT===rt&&!r._stop){try{r.start()}catch(e){}}};
-  try{r.start()}catch(e){}
+function candEnd(i){
+  app.innerHTML=`<div class="card stack" style="max-width:520px;margin:40px auto;text-align:center;align-items:center">
+    <div style="width:90px">${logoSVG('endClip')}</div><h2>Entrevista encerrada</h2>
+    <p class="muted">Obrigado pela participação, ${esc(i.candidato)}! A equipe de recrutamento${i.empresa?' da '+esc(i.empresa):''} vai entrar em contato com os próximos passos.</p>
+    <p class="xs muted">Você já pode fechar esta página.</p></div>`;
 }
 function candStop(){
   const rt=candRT; if(!rt)return; candRT=null;
-  clearInterval(rt.helloT);
+  clearInterval(rt.helloT); rt.stopMeter&&rt.stopMeter();
+  if(rt.unload)window.removeEventListener('pagehide',rt.unload);
   try{rt.sig&&rt.sig.send({t:'bye'})}catch(e){}
-  if(rt.recog){rt.recog._stop=true;try{rt.recog.stop()}catch(e){}}
-  try{rt.pc&&rt.pc.close()}catch(e){} try{rt.sig&&rt.sig.close()}catch(e){}
+  try{rt.pc&&rt.pc.close()}catch(e){} setTimeout(()=>{try{rt.sig&&rt.sig.close()}catch(e){}},300);
   if(rt.stream)rt.stream.getTracks().forEach(t=>t.stop());
 }
 
@@ -1354,9 +1512,9 @@ async function docxText(file){
 /* ---------- LGPD ---------- */
 function vLgpd(){
   const st=S.settings; const days=ms=>Math.floor((Date.now()-ms)/864e5);
-  app.innerHTML=`<div class="row" style="margin-bottom:16px"><h1>Painel LGPD</h1></div>
+  app.innerHTML=`<div class="row" style="margin-bottom:16px"><h1>Configurações e LGPD</h1></div>
   <div class="grid2" style="align-items:start">
-    <div class="card stack"><h3>Configurações do termo</h3>
+    <div class="card stack"><h3>Sua empresa</h3><p class="xs muted" style="margin:-6px 0 0">Esses dados aparecem para o candidato no convite e no termo de aceite.</p>
       <div><label class="f" for="sE">Empresa</label><input id="sE" type="text" value="${esc(st.empresa)}"></div>
       <div><label class="f" for="sC">E-mail para pedidos do titular</label><input id="sC" type="text" value="${esc(st.contato)}"></div>
       <div><label class="f" for="sS">Endereço do site (para o link do candidato)</label><input id="sS" type="text" value="${esc(st.site||'')}" placeholder="https://mateusdesleal-ops.github.io/Nuance/"></div>
@@ -1366,12 +1524,14 @@ function vLgpd(){
       <p class="xs muted">Esses dados aparecem no termo que o candidato vê antes de entrar.</p>
     </div>
     <div class="card"><h3 style="margin-bottom:8px">Aceites registrados</h3>
-      ${S.consents.length?[...S.consents].reverse().map(c=>`<div class="list-item"><div style="flex:1;min-width:160px"><b>${esc(c.candidato)}</b><div class="xs muted">${new Date(c.at).toLocaleString('pt-BR')} · ${esc(c.code)} · termo v${esc(c.versao)}${c.simulado?' · simulado':''}</div></div><span class="pill ${c.choice==='full'?'ok':'blue'}">${c.choice==='full'?'Autorizou análise':'Só gravação'}</span></div>`).join(''):'<p class="muted small">Nenhum aceite ainda.</p>'}
+      ${S.consents.length?[...S.consents].reverse().map(c=>`<div class="list-item"><div style="flex:1;min-width:160px"><b>${esc(c.candidato)}</b><div class="xs muted">${new Date(c.at).toLocaleString('pt-BR')} · ${esc(c.code)} · termo v${esc(c.versao)}${c.simulado?' · simulado':''}</div></div><span class="pill ${c.choice==='full'?'ok':'blue'}">${c.choice==='full'?'Autorizou análise':'Só transcrição'}</span></div>`).join(''):'<p class="muted small">Nenhum aceite ainda.</p>'}
     </div>
   </div>
+  ${S.interviews.some(i=>i.demo)?`<div class="card row" style="margin-top:16px"><div style="flex:1;min-width:200px"><b>Dados de demonstração</b><div class="small muted">Ana Souza e Bruno Lima são exemplos para conhecer o Nuance.</div></div><button class="btn sm danger" id="bDelDemo">Remover dados de demonstração</button></div>`:''}
   <div class="card" style="margin-top:16px"><h3 style="margin-bottom:8px">Dados por entrevista</h3>
     ${S.interviews.map(i=>{const d=days(i.createdAt),exp=d>=st.retencao;return `<div class="list-item"><div style="flex:1;min-width:160px"><b>${esc(i.candidato)}</b><div class="xs muted">${esc(i.vaga)} · criada há ${d} dia${d===1?'':'s'} · ${i.transcript.length} falas · ${i.indicios.length} indícios</div></div>${exp?'<span class="pill warn">Prazo vencido</span>':`<span class="pill gray">Expira em ${st.retencao-d} dias</span>`}<button class="btn sm ghost" data-exp="${i.id}">${icon('copy')} Copiar dados</button><button class="btn sm danger" data-del="${i.id}">Excluir</button></div>`}).join('')||'<p class="muted small">Sem dados.</p>'}
   </div>`;
+  const dd=$('#bDelDemo'); if(dd) dd.onclick=()=>confirmBox('Remover os dados de demonstração?','Remover',()=>{const ids=S.interviews.filter(i=>i.demo).map(i=>i.id);S.interviews=S.interviews.filter(i=>!i.demo);S.consents=S.consents.filter(c=>!ids.includes(c.iid));S.vagas=S.vagas.filter(v=>!v.demo||S.interviews.some(i=>i.vagaId===v.id));save();toast('Dados de demonstração removidos');vLgpd()});
   $('#sSave').onclick=()=>{const r=parseInt($('#sR').value,10); if(!$('#sE').value.trim()||!$('#sC').value.trim()){$('#sErr').textContent='Preencha empresa e e-mail.';return} if(!(r>=1&&r<=365)){$('#sErr').textContent='Retenção entre 1 e 365 dias.';return} st.empresa=$('#sE').value.trim();st.site=$('#sS').value.trim()||st.site;st.contato=$('#sC').value.trim();st.retencao=r;save();toast('Configurações salvas');vLgpd()};
   ['#sE','#sC','#sR'].forEach(s=>$(s).addEventListener('input',()=>$('#sErr').textContent=''));
   app.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{const i=S.interviews.find(x=>x.id===b.dataset.exp);copy(JSON.stringify({candidato:i.candidato,vaga:i.vaga,consentimento:S.consents.filter(c=>c.iid===i.id),transcricao:i.transcript,indicios:i.indicios,marcacoes:i.marks,parecer:i.parecer},null,2))});

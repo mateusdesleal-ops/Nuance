@@ -44,7 +44,11 @@ Cada função pode ser ligada ou desligada por entrevista.
 
 Backend: Supabase (projeto `nuance`, região São Paulo). A tabela `rooms` guarda só código, vaga, empresa, primeiro nome e o aceite; é acessada apenas por três funções (`nuance_upsert_room`, `nuance_get_room`, `nuance_set_consent`). Salas expiram em 3 dias. Transcrição, indícios e parecer continuam no navegador do recrutador.
 
-Use fone de ouvido do lado do recrutador, para a transcrição dele não captar a voz do candidato. Redes corporativas podem bloquear a conexão direta; sem servidor TURN, teste com uma das pontas fora da rede da empresa.
+Transcrição: feita no servidor (Whisper no Groq, secret `GROQ_API_KEY`), uma voz por vez — o microfone do recrutador e o áudio recebido do candidato são transcritos separadamente, em blocos de 10 s, ignorando silêncio. O navegador do candidato não faz reconhecimento de voz (no celular isso cortava o áudio da chamada).
+
+Redes corporativas: configure o TURN da Cloudflare (1.000 GB/mês grátis) com os secrets `CF_TURN_KEY_ID` e `CF_TURN_API_TOKEN` no Supabase. A função `nuance-ai` gera credenciais temporárias para cada chamada. Alternativa: `TURN_URLS`, `TURN_USERNAME`, `TURN_CREDENTIAL`.
+
+Leitura de expressões: calibra o rosto neutro nos primeiros ~12 s, reduz o peso dos movimentos da boca enquanto a pessoa fala e liga cada indício ao trecho que estava sendo dito.
 
 ## Limitações do protótipo
 
