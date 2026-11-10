@@ -1146,10 +1146,19 @@ function withTimeout(p,ms){return Promise.race([p,new Promise((_,r)=>setTimeout(
 async function rpc(fn,args){const sb=await withTimeout(getSb(),8000);const {data,error}=await withTimeout(sb.rpc(fn,args),8000);if(error)throw error;return data}
 async function publishRoom(i){await rpc('nuance_upsert_room',{p_code:i.code,p_vaga:i.vaga,p_empresa:S.settings.empresa,p_nome:i.candidato,p_analise:!!i.features.ekman,p_gravacao:!!i.features.gravacao,p_retencao:S.settings.retencao,p_contato:S.settings.contato,p_video:!!i.features.video});i.online=true;save()}
 async function joinChannel(code,onMsg){
-  const sb=await getSb(); const ch=sb.channel('nuance-'+code,{config:{broadcast:{self:false}}});
-  ch.on('broadcast',{event:'sig'},({payload})=>onMsg(payload));
-  await new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error('timeout')),10000);ch.subscribe(st=>{if(st==='SUBSCRIBED'){clearTimeout(t);res()}else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'){clearTimeout(t);rej(new Error(st))}})});
-  return {send:p=>ch.send({type:'broadcast',event:'sig',payload:p}),close:()=>{try{sb.removeChannel(ch)}catch(e){}}};
+  const sb=await getSb(); const topic='nuance-'+code;
+  // fecha qualquer canal antigo com o mesmo nome antes de abrir (senão o servidor devolve o antigo, que está fechando)
+  for(const c of (sb.getChannels?sb.getChannels():[])){if(c.topic==='realtime:'+topic||c.topic===topic){try{await sb.removeChannel(c)}catch(e){}}}
+  let lastErr=null;
+  for(let attempt=0;attempt<3;attempt++){
+    const ch=sb.channel(topic,{config:{broadcast:{self:false}}});
+    ch.on('broadcast',{event:'sig'},({payload})=>onMsg(payload));
+    try{
+      await new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error('timeout')),10000);ch.subscribe(st=>{if(st==='SUBSCRIBED'){clearTimeout(t);res()}else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT'||st==='CLOSED'){clearTimeout(t);rej(new Error(st))}})});
+      return {send:p=>ch.send({type:'broadcast',event:'sig',payload:p}),close:()=>sb.removeChannel(ch).catch(()=>{})};
+    }catch(e){lastErr=e;try{await sb.removeChannel(ch)}catch(x){}await new Promise(r=>setTimeout(r,1500*(attempt+1)))}
+  }
+  throw lastErr||new Error('channel');
 }
 function recordConsent(i,choice,video){video=!!video;if(i.consent===choice&&!!i.consentVideo===video)return false;i.consent=choice;i.consentVideo=video;S.consents.push({id:'c'+Date.now(),iid:i.id,code:i.code,candidato:i.candidato,choice,video,at:new Date().toISOString(),versao:CONSENT_VERSION,online:true});save();return true}
 
@@ -1236,7 +1245,8 @@ async function startOnline(){
   room.stopMeter=meter($('#rMeter'),levelOf(room.stream));
   $('#bMic').onclick=()=>toggleTrack(room.stream,'audio',$('#bMic'),[MIC_ON,MIC_OFF]);
   $('#bCamT').onclick=()=>toggleTrack(room.stream,'video',$('#bCamT'),[CAM_ON,CAM_OFF]);
-  try{room.online.sig=await joinChannel(i.code,onRecMsg)}catch(e){msg.textContent='Não consegui abrir o canal da sala. Tente de novo.';return}
+  msg.textContent='Abrindo a sala…';
+  try{room.online.sig=await joinChannel(i.code,onRecMsg)}catch(e){msg.innerHTML='Não consegui abrir o canal da sala (internet instável ou servidor lento). <button class="btn sm" id="bRetryCh">Tentar de novo</button>';const rb=$('#bRetryCh');if(rb)rb.onclick=()=>{stopCam();startOnline()};return}
   room.ice=await getIce();
   msg.textContent='Sala aberta. Aguardando '+i.candidato.split(' ')[0]+' entrar pelo link do candidato.'+(room.ice.turn?'':' (Sem servidor de retransmissão: em rede corporativa a conexão pode falhar.)');
   room.running=true;
@@ -1284,7 +1294,7 @@ async function startEkmanOnRemote(){
 function stopOnline(final){
   if(!room||!room.online)return; const o=room.online;
   try{o.sig&&o.sig.send({t:final?'end':'bye'})}catch(e){}
-  try{o.pc&&o.pc.close()}catch(e){} setTimeout(()=>{try{o.sig&&o.sig.close()}catch(e){}},300);
+  try{o.pc&&o.pc.close()}catch(e){} try{o.sig&&o.sig.close()}catch(e){}
   room.online=null;
   ['txR','txC'].forEach(k=>{if(room[k]){room[k].stop();room[k]=null}});
   room.stopMeter&&room.stopMeter(); room.stopRMeter&&room.stopRMeter();
@@ -1339,7 +1349,7 @@ function candStop(){
   clearInterval(rt.helloT); rt.stopMeter&&rt.stopMeter();
   if(rt.unload)window.removeEventListener('pagehide',rt.unload);
   try{rt.sig&&rt.sig.send({t:'bye'})}catch(e){}
-  try{rt.pc&&rt.pc.close()}catch(e){} setTimeout(()=>{try{rt.sig&&rt.sig.close()}catch(e){}},300);
+  try{rt.pc&&rt.pc.close()}catch(e){} try{rt.sig&&rt.sig.close()}catch(e){}
   if(rt.stream)rt.stream.getTracks().forEach(t=>t.stop());
 }
 
