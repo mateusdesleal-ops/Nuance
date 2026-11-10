@@ -206,7 +206,7 @@ table.cmp th{font-size:12px;color:var(--muted);font-weight:700}
 /* modal + toast */
 #modal{position:fixed;inset:0;background:rgba(30,28,26,.5);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}
 #modal.on{display:flex}
-#modal .card{max-width:440px;width:100%}
+#modal .card{max-width:440px;width:100%;max-height:90vh;overflow:auto}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(30px);background:var(--ink);color:var(--paper);padding:12px 18px;border-radius:12px;font-weight:600;opacity:0;transition:.25s;z-index:70;pointer-events:none;max-width:90vw}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 .spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
@@ -249,6 +249,7 @@ body.cand .brand{pointer-events:none}
     <nav class="main" aria-label="Principal">
       <button data-go="home">Início</button>
       <button data-go="nova">Nova vaga</button>
+      <button data-go="entrevistas">Entrevistas</button>
       <button data-go="comparar">Comparar</button>
       <button data-go="modelos">Modelos</button>
       <button data-go="lgpd">Configurações</button>
@@ -400,7 +401,7 @@ function md(s){
   }
   if(inUl)out+='</ul>';return out;
 }
-function modal(html,onMount){$('#modalBody').innerHTML=html;$('#modal').classList.add('on');onMount&&onMount($('#modalBody'))}
+function modal(html,onMount){$('#modalBody').style.maxWidth='';$('#modalBody').innerHTML=html;$('#modal').classList.add('on');onMount&&onMount($('#modalBody'))}
 function closeModal(){$('#modal').classList.remove('on')}
 function confirmBox(msg,okLabel,fn){modal(`<h3>${esc(msg)}</h3><div class="row"><span class="spacer"></span><button class="btn ghost" data-m="no">Cancelar</button><button class="btn primary" data-m="ok">${esc(okLabel)}</button></div>`,b=>{b.querySelector('[data-m=no]').onclick=closeModal;b.querySelector('[data-m=ok]').onclick=()=>{closeModal();fn()}})}
 const logoSVG=(id,cls='')=>`<svg viewBox="20 40 525 440" aria-hidden="true" class="${cls}"><defs><clipPath id="${id}"><path class="bob-b" d="M 347 115 C 450 115 533 188 533 280 C 533 310 524 338 504 369 L 532 455 Q 539 474 521 463 L 434 411 C 408 421 375 425 349 425 C 251 425 171 362 171 276 C 171 185 250 115 347 115 Z"/></clipPath></defs><path class="bob-a" d="M 230 47 C 330 47 408 120 408 217 C 408 314 325 390 224 390 C 198 390 171 385 149 375 L 63 433 Q 46 444 51 424 L 73 337 C 42 303 27 260 27 219 C 27 120 114 47 230 47 Z" fill="#2B2B2B"/><path class="bob-b" d="M 347 115 C 450 115 533 188 533 280 C 533 310 524 338 504 369 L 532 455 Q 539 474 521 463 L 434 411 C 408 421 375 425 349 425 C 251 425 171 362 171 276 C 171 185 250 115 347 115 Z" fill="#F4AA91"/><g clip-path="url(#${id})"><path class="bob-a glow" d="M 230 47 C 330 47 408 120 408 217 C 408 314 325 390 224 390 C 198 390 171 385 149 375 L 63 433 Q 46 444 51 424 L 73 337 C 42 303 27 260 27 219 C 27 120 114 47 230 47 Z" fill="#E2603B"/></g></svg>`;
@@ -446,7 +447,7 @@ function go(v,id){
   view=v; if(id) curId=id;
   document.querySelectorAll('nav.main button').forEach(b=>b.classList.toggle('on',b.dataset.go===v));
   window.scrollTo(0,0);
-  ({home:vHome,nova:vNova,convite:vConvite,candidato:vCandidato,aceite:vAceite,candsala:vCandSala,sala:vSala,parecer:vParecer,comparar:vComparar,lgpd:vLgpd,modelos:vModelos,vaga:vVaga}[v]||vHome)();
+  ({home:vHome,nova:vNova,convite:vConvite,candidato:vCandidato,aceite:vAceite,candsala:vCandSala,sala:vSala,parecer:vParecer,comparar:vComparar,lgpd:vLgpd,modelos:vModelos,vaga:vVaga,entrevistas:vEntrevistas}[v]||vHome)();
 }
 
 /* ---------- splash ---------- */
@@ -582,10 +583,12 @@ function vVaga(){
   <div class="card">
     <h3 style="margin-bottom:6px">Candidatos</h3>
     ${cs.length?cs.map(i=>`<div class="list-item"><span class="avatar">${initials(i.candidato)}</span><div style="flex:1;min-width:160px"><b>${esc(i.candidato)}</b>${i.demo?' <span class="pill gray">Demonstração</span>':''}<div class="small muted">código ${esc(i.code)}${i.parecerFinal?' · '+esc(i.parecerFinal):''}</div></div>${stPill(i)}${i.consent?`<span class="pill ${i.consent==='full'?'ok':'blue'}">${i.consent==='full'?'Análise autorizada':'Só transcrição'}</span>`:''}
-      <div class="row">${i.status==='concluida'?`<button class="btn sm" data-go="parecer" data-id="${i.id}">Ver parecer</button>`:`<button class="btn sm" data-go="convite" data-id="${i.id}">Convite</button><button class="btn sm dark" data-go="sala" data-id="${i.id}">Abrir sala</button>`}</div></div>`).join(''):'<p class="muted small">Nenhum candidato ainda. Clique em "Adicionar candidato".</p>'}
+      <div class="row">${i.transcript.length?`<button class="btn sm ghost" data-tr="${i.id}">Transcrição</button>`:''}${(RECS[i.id]||[]).length||(i.gravacoes||[]).length?`<button class="btn sm ghost" data-rv="${i.id}">Gravação</button>`:''}${i.status==='concluida'?`<button class="btn sm" data-go="parecer" data-id="${i.id}">Ver parecer</button>`:`<button class="btn sm" data-go="convite" data-id="${i.id}">Convite</button><button class="btn sm dark" data-go="sala" data-id="${i.id}">Abrir sala</button>`}</div></div>`).join(''):'<p class="muted small">Nenhum candidato ainda. Clique em "Adicionar candidato".</p>'}
   </div>
   <div class="card row" style="margin-top:16px"><div style="flex:1;min-width:200px"><b class="small">Link do candidato</b><div class="xs muted" style="word-break:break-all">${esc(candLink())}</div></div><button class="btn sm" id="hCopy">${icon('copy')} Copiar link</button><button class="btn sm ghost" id="hTest">Ver como candidato</button></div>`;
   $('#hCopy').onclick=()=>copy(candLink()); $('#hTest').onclick=()=>{location.hash='entrar'};
+  app.querySelectorAll('[data-tr]').forEach(b=>b.onclick=()=>showTranscript(S.interviews.find(x=>x.id===b.dataset.tr)));
+  app.querySelectorAll('[data-rv]').forEach(b=>b.onclick=()=>showRecording(S.interviews.find(x=>x.id===b.dataset.rv)));
   $('#bEditVaga').onclick=()=>{draft=newDraft(v);go('nova','edit')};
   $('#bEditRot').onclick=()=>{draft=newDraft(v);go('nova','edit');setTimeout(()=>{const d=$('#fDesc');if(d){d.scrollIntoView({block:'center'});d.focus()}},50)};
   const bcv=$('#bCmpVaga'); if(bcv) bcv.onclick=()=>{vComparar.sel=v.id;go('comparar')};
@@ -1383,6 +1386,63 @@ function stopRecording(i,download){
   });
 }
 
+/* ---------- ENTREVISTAS (arquivo: transcrições, gravações, pareceres) ---------- */
+function transcriptText(i){return `Entrevista: ${i.candidato}\nVaga: ${i.vaga}\nCódigo: ${i.code}\nData: ${new Date(i.createdAt).toLocaleString('pt-BR')}\nDuração: ${fmt(i.duracao||0)}\n\n`+i.transcript.map(l=>`[${fmt(l.t)}] ${l.who==='C'?i.candidato:'Recrutador'}: ${l.text}`).join('\n')}
+function fileSafe(s){return String(s).replace(/[\\/:*?"<>|]+/g,'').trim()}
+function downloadText(text,name){const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));downloadBlob(url,name);setTimeout(()=>URL.revokeObjectURL(url),5000)}
+function showTranscript(i){
+  modal(`<div class="row"><h3 style="flex:1">Transcrição · ${esc(i.candidato)}</h3><button class="btn sm ghost" data-m="x" aria-label="Fechar">✕</button></div>
+    <div class="xs muted">${esc(i.vaga)} · ${new Date(i.createdAt).toLocaleDateString('pt-BR')} · ${i.transcript.length} falas</div>
+    <div class="transcript" style="max-height:55vh">${i.transcript.length?i.transcript.map(l=>`<div class="tl"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}</div>`).join(''):'<p class="small muted">Nenhuma fala transcrita nesta entrevista.</p>'}</div>
+    <div class="row"><span class="spacer"></span><button class="btn sm" data-m="c">${icon('copy')} Copiar</button><button class="btn sm primary" data-m="d">Baixar .txt</button></div>`,b=>{
+      b.closest('.card').style.maxWidth='720px';
+      b.querySelector('[data-m=x]').onclick=closeModal;
+      b.querySelector('[data-m=c]').onclick=()=>copy(transcriptText(i));
+      b.querySelector('[data-m=d]').onclick=()=>downloadText(transcriptText(i),`Transcrição - ${fileSafe(i.candidato)} - ${fileSafe(i.vaga)}.txt`);
+    });
+}
+function showRecording(i){
+  const mem=RECS[i.id]||[], saved=i.gravacoes||[];
+  modal(`<div class="row"><h3 style="flex:1">Gravação · ${esc(i.candidato)}</h3><button class="btn sm ghost" data-m="x" aria-label="Fechar">✕</button></div>
+    <div id="recBody">${mem.length?mem.map((r,k)=>`<video controls src="${r.url}" style="width:100%;border-radius:10px;background:#000"></video><div class="row"><span class="small" style="flex:1;word-break:break-all">${esc(r.name)}</span><button class="btn sm" data-rd="${k}">Baixar</button></div>`).join(''):
+      saved.length?`<p class="small">O vídeo foi salvo no computador usado na entrevista, na pasta <b>Downloads</b>:</p>${saved.map(g=>`<div class="small" style="word-break:break-all">• ${esc(g.name)}${g.size?` (${Math.round(g.size/1048576)} MB)`:''}</div>`).join('')}<p class="xs muted" style="margin-top:8px">Para assistir aqui, selecione o arquivo abaixo.</p>`:
+      `<p class="small muted">Esta entrevista não tem gravação registrada. Ela só acontece quando a vaga tem "Gravação em vídeo" ligada e o candidato autoriza no termo.</p>`}</div>
+    <label class="btn sm ghost" style="cursor:pointer;align-self:flex-start">Abrir arquivo de vídeo do computador<input type="file" accept="video/*,.webm" id="recFile" class="sr"></label>`,b=>{
+      b.closest('.card').style.maxWidth='760px';
+      b.querySelector('[data-m=x]').onclick=()=>{b.querySelectorAll('video').forEach(v=>v.pause());closeModal()};
+      b.querySelectorAll('[data-rd]').forEach(x=>x.onclick=()=>{const r=mem[+x.dataset.rd];downloadBlob(r.url,r.name)});
+      b.querySelector('#recFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);b.querySelector('#recBody').innerHTML=`<video controls autoplay src="${url}" style="width:100%;border-radius:10px;background:#000"></video><div class="small" style="word-break:break-all">${esc(f.name)}</div>`};
+    });
+}
+function vEntrevistas(){
+  const f=vEntrevistas.f||(vEntrevistas.f={q:'',vaga:'',st:''});
+  const list=[...S.interviews].sort((a,b)=>b.createdAt-a.createdAt).filter(i=>(!f.vaga||i.vagaId===f.vaga)&&(!f.st||i.status===f.st)&&(!f.q||i.candidato.toLowerCase().includes(f.q.toLowerCase())));
+  app.innerHTML=`<div class="row" style="margin-bottom:16px"><h1 style="flex:1">Entrevistas</h1></div>
+  <div class="card row" style="margin-bottom:16px;gap:12px">
+    <div style="flex:2;min-width:180px"><label class="f" for="eQ">Buscar candidato</label><input id="eQ" type="text" placeholder="Nome" value="${esc(f.q)}"></div>
+    <div style="flex:2;min-width:180px"><label class="f" for="eV">Vaga</label><select id="eV"><option value="">Todas</option>${S.vagas.map(v=>`<option value="${v.id}" ${f.vaga===v.id?'selected':''}>${esc(v.nome)}</option>`).join('')}</select></div>
+    <div style="flex:1;min-width:150px"><label class="f" for="eS">Situação</label><select id="eS"><option value="">Todas</option><option value="agendada" ${f.st==='agendada'?'selected':''}>Agendada</option><option value="em_andamento" ${f.st==='em_andamento'?'selected':''}>Em andamento</option><option value="concluida" ${f.st==='concluida'?'selected':''}>Concluída</option></select></div>
+  </div>
+  <div class="card">
+    ${list.length?list.map(i=>{const hasRec=(RECS[i.id]||[]).length||(i.gravacoes||[]).length;return `<div class="list-item" style="align-items:flex-start">
+      <span class="avatar">${initials(i.candidato)}</span>
+      <div style="flex:1;min-width:200px"><b>${esc(i.candidato)}</b>${i.demo?' <span class="pill gray">Demonstração</span>':''}
+        <div class="small muted">${esc(i.vaga)} · ${new Date(i.createdAt).toLocaleDateString('pt-BR')} · código ${esc(i.code)}${i.duracao?' · '+fmt(i.duracao):''}</div>
+        <div class="row" style="gap:6px;margin-top:6px">${stPill(i)}${i.transcript.length?`<span class="pill gray">${i.transcript.length} falas</span>`:''}${hasRec?'<span class="pill ok">Com gravação</span>':''}${i.parecerFinal?`<span class="pill terra">${esc(i.parecerFinal)}</span>`:''}</div></div>
+      <div class="row" style="gap:6px">
+        <button class="btn sm" data-tr="${i.id}">Transcrição</button>
+        <button class="btn sm" data-rv="${i.id}">Gravação</button>
+        ${i.status==='concluida'?`<button class="btn sm dark" data-go="parecer" data-id="${i.id}">Parecer</button>`:`<button class="btn sm dark" data-go="sala" data-id="${i.id}">Abrir sala</button>${i.status==='em_andamento'?`<button class="btn sm ghost" data-fin="${i.id}">Concluir</button>`:''}`}
+      </div></div>`}).join(''):'<p class="muted small">Nenhuma entrevista encontrada.</p>'}
+  </div>
+  <p class="xs muted" style="margin-top:10px">As transcrições ficam salvas neste navegador. Os vídeos ficam no computador usado na entrevista (pasta Downloads).</p>`;
+  const q=$('#eQ'); q.oninput=()=>{f.q=q.value;clearTimeout(vEntrevistas.t);vEntrevistas.t=setTimeout(()=>{vEntrevistas();const n=$('#eQ');n.focus();n.setSelectionRange(n.value.length,n.value.length)},250)};
+  $('#eV').onchange=e=>{f.vaga=e.target.value;vEntrevistas()}; $('#eS').onchange=e=>{f.st=e.target.value;vEntrevistas()};
+  app.querySelectorAll('[data-tr]').forEach(b=>b.onclick=()=>showTranscript(S.interviews.find(x=>x.id===b.dataset.tr)));
+  app.querySelectorAll('[data-rv]').forEach(b=>b.onclick=()=>showRecording(S.interviews.find(x=>x.id===b.dataset.rv)));
+  app.querySelectorAll('[data-fin]').forEach(b=>b.onclick=()=>{const i=S.interviews.find(x=>x.id===b.dataset.fin);confirmBox(`Marcar a entrevista de ${i.candidato} como concluída?`,'Concluir',()=>{i.status='concluida';save();go('parecer',i.id)})});
+}
+
 /* ---------- PARECER ---------- */
 function vParecer(){
   const i=cur(); if(!i)return go('home'); const F=i.features; const dur=Math.max(i.duracao,1);
@@ -1417,14 +1477,15 @@ function vParecer(){
         </div>`}).join('')}</div></div>
       ${F.pares?`<div class="card stack"><h3>Avaliação por pares</h3>${i.pares.map(p=>`<div class="small"><b>${esc(p.autor)}:</b> ${esc(p.texto)}</div>`).join('')||'<p class="small muted">Nenhum comentário ainda.</p>'}
         <div><label class="f" for="pA">Quem avalia</label><input id="pA" type="text" placeholder="Gestor da área"></div><div><label class="f" for="pT">Comentário</label><textarea id="pT" style="min-height:70px" placeholder="O que você observou na gravação?"></textarea></div><p id="pErr" class="small" style="color:#A3301E;min-height:18px"></p><button class="btn sm" id="bPar2">Adicionar comentário</button></div>`:''}
-      ${F.gravacao&&i.transcript.length?`<div class="card"><div class="row"><h3>Transcrição</h3><span class="spacer"></span><button class="btn sm ghost" id="cTr">${icon('copy')} Copiar</button></div><div class="transcript" style="max-height:320px;margin-top:8px">${i.transcript.map(l=>`<div class="tl"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}</div>`).join('')}</div></div>`:''}
+      ${F.gravacao&&i.transcript.length?`<div class="card"><div class="row"><h3>Transcrição</h3><span class="spacer"></span><button class="btn sm ghost" id="cTr">${icon('copy')} Copiar</button><button class="btn sm ghost" id="dTr">Baixar .txt</button></div><div class="transcript" style="max-height:320px;margin-top:8px">${i.transcript.map(l=>`<div class="tl"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}</div>`).join('')}</div></div>`:''}
     </div>
   </div>`;
   app.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{const[ci,n]=b.dataset.lv.split(':');const c=i.competencias[+ci];c.nivel=c.nivel===n?null:n;save();vParecer()});
   const bsl=$('#bSugLv'); if(bsl) bsl.onclick=()=>suggestLevels(i,bsl);
   if(!i.competencias.some(c=>c.sug)&&i.transcript.some(l=>l.who==='C')&&!vParecer._auto?.[i.id]){vParecer._auto={...(vParecer._auto||{}),[i.id]:true};setTimeout(async()=>{const b=$('#bSugLv');if(!(b&&view==='parecer'&&curId===i.id))return;await suggestLevels(i,b);if(i.features.parecer){const bp=$('#bPar');if(bp){bp.innerHTML='<span class="spin"></span> Escrevendo…';bp.disabled=true}await fillSections(i,null,false);if(view==='parecer'&&curId===i.id)vParecer()}},300)}
   const trText=()=>i.transcript.map(l=>`[${fmt(l.t)}] ${l.who==='C'?i.candidato:'Recrutador'}: ${l.text}`).join('\n');
-  const ct=$('#cTr'); if(ct) ct.onclick=()=>copy(trText());
+  const ct=$('#cTr'); if(ct) ct.onclick=()=>copy(transcriptText(i));
+  const dt=$('#dTr'); if(dt) dt.onclick=()=>downloadText(transcriptText(i),`Transcrição - ${fileSafe(i.candidato)} - ${fileSafe(i.vaga)}.txt`);
   app.querySelectorAll('[data-rdl]').forEach(b=>b.onclick=()=>{const r=RECS[i.id][+b.dataset.rdl];downloadBlob(r.url,r.name)});
   const parText=()=>{const t=tplOf(i);return `${i.candidato}\nCargo avaliado: ${i.vaga}\n\n`+t.secoes.filter(s=>s.ativa&&i.secoes[s.id]).map(s=>`${s.titulo}\n${i.secoes[s.id]}`).join('\n\n')+(i.parecerFinal?`\n\nParecer final: ${i.parecerFinal}`:'')+(t.rodape?`\n\n${t.rodape}`:'')};
   const cp=$('#cPar'); if(cp) cp.onclick=()=>copy(parText());
