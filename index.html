@@ -219,6 +219,9 @@ body.cand .brand{pointer-events:none}
 .btn.off{background:#FBE4E0;border-color:#A3301E;color:#A3301E}
 .callbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .unlock{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4}
+.hud{position:absolute;left:12px;bottom:12px;z-index:3;pointer-events:none;background:rgba(0,0,0,.5);color:#fff;border-radius:10px;padding:6px 10px;font-size:12px;line-height:1.5;display:none;max-width:60%}
+.hud b{font-weight:600}.hud .warn{color:#FFD08A}
+.va{width:100%;height:auto;display:block;cursor:pointer;margin-top:8px}
 .qbar{position:absolute;left:12px;right:110px;top:44px;display:none;align-items:center;gap:10px;z-index:3;pointer-events:none}
 .qbar b{font-size:11px;color:#fff;font-weight:600;white-space:nowrap;text-shadow:0 1px 2px #000}
 .qbar span{position:relative;flex:1;height:8px;border-radius:9px;background:linear-gradient(90deg,#C2412D,#D9A13B 45%,#3E9B5F)}
@@ -442,6 +445,7 @@ const CAND_VIEWS=['candidato','aceite','candsala'];
 function isCand(){return location.hash==='#entrar'}
 function candLink(){return (S.settings.site||'').replace(/#.*$/,'')+'#entrar'}
 function applyMode(){document.body.classList.toggle('cand',isCand())}
+setTimeout(()=>{if(!isCand())purgeOldRecs()},4000);
 window.addEventListener('hashchange',()=>{applyMode();go(isCand()?'candidato':'home')});
 function go(v,id){
   if(isCand()&&!CAND_VIEWS.includes(v)) v='candidato';
@@ -587,7 +591,7 @@ function vVaga(){
   <div class="card">
     <h3 style="margin-bottom:6px">Candidatos</h3>
     ${cs.length?cs.map(i=>`<div class="list-item"><span class="avatar">${initials(i.candidato)}</span><div style="flex:1;min-width:160px"><b>${esc(i.candidato)}</b>${i.demo?' <span class="pill gray">Demonstração</span>':''}<div class="small muted">código ${esc(i.code)}${i.parecerFinal?' · '+esc(i.parecerFinal):''}</div></div>${stPill(i)}${i.consent?`<span class="pill ${i.consent==='full'?'ok':'blue'}">${i.consent==='full'?'Análise autorizada':'Só transcrição'}</span>`:''}
-      <div class="row">${i.transcript.length?`<button class="btn sm ghost" data-tr="${i.id}">Transcrição</button>`:''}${(RECS[i.id]||[]).length||(i.gravacoes||[]).length?`<button class="btn sm ghost" data-rv="${i.id}">Gravação</button>`:''}${i.status==='concluida'?`<button class="btn sm" data-go="parecer" data-id="${i.id}">Ver parecer</button>`:`<button class="btn sm" data-go="convite" data-id="${i.id}">Convite</button><button class="btn sm dark" data-go="sala" data-id="${i.id}">Abrir sala</button>`}</div></div>`).join(''):'<p class="muted small">Nenhum candidato ainda. Clique em "Adicionar candidato".</p>'}
+      <div class="row">${i.transcript.length?`<button class="btn sm ghost" data-tr="${i.id}">Transcrição</button>`:''}${(RECS[i.id]||[]).length||(i.gravacoes||[]).length?`<button class="btn sm ghost" data-rv="${i.id}">Revisar</button>`:''}${i.status==='concluida'?`<button class="btn sm" data-go="parecer" data-id="${i.id}">Ver parecer</button>`:`<button class="btn sm" data-go="convite" data-id="${i.id}">Convite</button><button class="btn sm dark" data-go="sala" data-id="${i.id}">Abrir sala</button>`}</div></div>`).join(''):'<p class="muted small">Nenhum candidato ainda. Clique em "Adicionar candidato".</p>'}
   </div>
   <div class="card row" style="margin-top:16px"><div style="flex:1;min-width:200px"><b class="small">Link do candidato</b><div class="xs muted" style="word-break:break-all">${esc(candLink())}</div></div><button class="btn sm" id="hCopy">${icon('copy')} Copiar link</button><button class="btn sm ghost" id="hTest">Ver como candidato</button></div>`;
   $('#hCopy').onclick=()=>copy(candLink()); $('#hTest').onclick=()=>{location.hash='entrar'};
@@ -743,7 +747,7 @@ function vSala(){
         <video id="cam" playsinline muted style="display:none;position:absolute;inset:0"></video>
         <audio id="rAudio" autoplay playsinline></audio>
         <button class="btn primary unlock" id="bUnlock" style="display:none">Ativar som do candidato</button>
-        <div class="qbar" id="qBar"><b>Qualidade da imagem</b><span><i style="left:0"></i></span></div>
+        <div class="hud" id="hud" aria-live="off"></div><div class="qbar" id="qBar"><b>Qualidade da imagem</b><span><i style="left:0"></i></span></div>
         <button class="btn sm" id="bFacs" style="position:absolute;top:10px;right:10px;z-index:4;background:rgba(0,0,0,.45);color:#fff;border-color:rgba(255,255,255,.3);display:none">Marcações FACS: ligadas</button>
         <div class="caption" id="cap"></div>
         <div id="waitC" style="position:absolute;inset:0;display:${i.demo?'none':'flex'};flex-direction:column;align-items:center;justify-content:center;color:#bbb;text-align:center;padding:20px"><div class="spin" style="width:28px;height:28px;margin-bottom:10px"></div><div id="waitTxt">Aguardando ${esc(i.candidato.split(' ')[0])} entrar pelo link do candidato…</div><div class="xs" style="margin-top:6px">Código ${esc(i.code)}</div></div>
@@ -832,7 +836,7 @@ function now(){return room?room.elapsed:0}
 function tick(){
   if(!room)return; const i=cur(); if(!i)return;
   if(room.running){room.elapsed+=.25;
-    if(room.mode==='demo') demoStep();
+    if(room.mode==='demo'){ demoStep(); const L=room.levels,neg=Math.max(L.tristeza,L.raiva,L.medo,L.nojo,L.desprezo); room.va={v:Math.max(-1,Math.min(1,L.alegria-neg)),a:Math.min(1,Object.values(L).reduce((x,y)=>x+y,0)*0.8+0.08)}; room.pose={yaw:0,pitch:0,look:Math.sin(room.elapsed/7)>-0.8}; sampleSinal(); }
   }
   // decaimento dos níveis no modo demo
   if(room.mode==='demo'){for(const k in room.levels){room.levels[k]*=.9}; drawBars(); animateFace()}
@@ -1217,6 +1221,67 @@ function drawQuality(q){
   el.querySelector('i').style.left=Math.round(q*100)+'%';
   el.querySelector('b').textContent=q<0.35?'Qualidade da imagem baixa: indícios pausados':q<0.6?'Qualidade da imagem razoável':'Qualidade da imagem boa';
 }
+/* ---------- Direção da cabeça, olhar, valência e ativação (código próprio sobre os pontos do MediaPipe) ---------- */
+function poseGaze(lm,b){
+  const hud=$('#hud'); if(!room)return;
+  if(!lm||!b){room.pose=null;if(hud){hud.style.display='block';hud.innerHTML='<span class="warn">Rosto fora do enquadramento</span>'}return}
+  const P=k=>lm[k], l=P(234), r=P(454), n=P(1), top=P(10), ch=P(152);
+  const yawRaw=(n.x-l.x)/((r.x-l.x)||1e-6)-0.5, pitchRaw=(n.y-top.y)/((ch.y-top.y)||1e-6);
+  const hRaw=((b.eyeLookOutLeft||0)-(b.eyeLookInLeft||0)+(b.eyeLookInRight||0)-(b.eyeLookOutRight||0))/2;
+  const vRaw=((b.eyeLookUpLeft||0)+(b.eyeLookUpRight||0)-(b.eyeLookDownLeft||0)-(b.eyeLookDownRight||0))/2;
+  const pc=room.poseCal||(room.poseCal={n:0,y:0,p:0,h:0,v:0});
+  if(!(room.calib&&room.calib.done)){pc.n++;pc.y+=yawRaw;pc.p+=pitchRaw;pc.h+=hRaw;pc.v+=vRaw;if(hud){hud.style.display='block';hud.textContent='Calibrando direção da cabeça e do olhar…'}return}
+  const N=Math.max(1,pc.n), sm=(o,x)=>o==null?x:o*0.7+x*0.3, q=room.pose||{};
+  const yaw=sm(q.yaw,yawRaw-pc.y/N), pitch=sm(q.pitch,pitchRaw-pc.p/N), gh=sm(q.gh,hRaw-pc.h/N), gv=sm(q.gv,vRaw-pc.v/N);
+  const head=Math.abs(yaw)>0.12?'virada para o lado':pitch>0.06?'inclinada para baixo':pitch<-0.06?'inclinada para cima':'de frente';
+  const look=head==='de frente'&&Math.abs(gh)<0.3&&Math.abs(gv)<0.32;
+  room.pose={yaw,pitch,gh,gv,head,look};
+  const va=room.va||{v:0,a:0};
+  if(hud){hud.style.display='block';hud.innerHTML=`Cabeça: <b>${head}</b> · Olhar: <b class="${look?'':'warn'}">${look?'na tela':'desviado'}</b><br>Valência <b>${va.v>=0?'+':''}${va.v.toFixed(2)}</b> · Ativação <b>${va.a.toFixed(2)}</b>`}
+  sampleSinal();
+}
+function sampleSinal(){
+  const i=cur(); if(!i||!room||!room.running)return; const t=now();
+  if(room.lastSig!=null&&t-room.lastSig<2)return; room.lastSig=t;
+  const va=room.va||{v:0,a:0}, p=room.pose||{yaw:0,pitch:0,look:true}; const r2=x=>Math.round(x*100)/100;
+  (i.sinais=i.sinais||[]).push([r2(t),r2(va.v),r2(va.a),r2(p.yaw),r2(p.pitch),p.look?1:0]);
+}
+function vaChart(i){
+  const S2=i.sinais||[]; if(S2.length<3)return '';
+  const dur=Math.max(i.duracao||0,S2[S2.length-1][0],1), W=600, X=t=>(t/dur*W).toFixed(1);
+  const vy=v=>(40-v*34).toFixed(1), ay=a=>(118-a*36).toFixed(1);
+  const vl=S2.map((s,k)=>(k?'L':'M')+X(s[0])+','+vy(s[1])).join('');
+  const va=`M${X(S2[0][0])},40`+S2.map(s=>'L'+X(s[0])+','+vy(s[1])).join('')+`L${X(S2[S2.length-1][0])},40Z`;
+  const al=S2.map((s,k)=>(k?'L':'M')+X(s[0])+','+ay(s[2])).join('');
+  const aa=al+`L${X(S2[S2.length-1][0])},118L${X(S2[0][0])},118Z`;
+  let gz='';for(let k=0;k<S2.length;k++){if(!S2[k][5]){const t1=k+1<S2.length?S2[k+1][0]:S2[k][0]+2;gz+=`<rect x="${X(S2[k][0])}" y="128" width="${Math.max(1,(t1-S2[k][0])/dur*W).toFixed(1)}" height="8" fill="#B9A99A"/>`}}
+  const id='vc'+i.id.replace(/\W/g,'');
+  return `<svg class="va" viewBox="0 0 ${W} 150" data-dur="${dur}" role="img" aria-label="Gráfico de valência, ativação e olhar ao longo da entrevista. Clique para ir ao momento na gravação.">
+    <defs><clipPath id="${id}p"><rect x="0" y="0" width="${W}" height="40"/></clipPath><clipPath id="${id}n"><rect x="0" y="40" width="${W}" height="40"/></clipPath></defs>
+    <rect x="0" y="4" width="${W}" height="72" rx="6" fill="#F6F0E9"/><line x1="0" x2="${W}" y1="40" y2="40" stroke="#CDBFB2" stroke-dasharray="3 3"/>
+    <path d="${va}" fill="#3E9B6B" opacity=".28" clip-path="url(#${id}p)"/><path d="${va}" fill="#C8553D" opacity=".28" clip-path="url(#${id}n)"/>
+    <path d="${vl}" fill="none" stroke="#5A4A3F" stroke-width="1.5"/>
+    <text x="6" y="16" font-size="10" fill="#7A6A5E">Valência: positiva ↑ / negativa ↓</text>
+    <rect x="0" y="82" width="${W}" height="38" rx="6" fill="#F6F0E9"/><path d="${aa}" fill="#D9973B" opacity=".35"/><path d="${al}" fill="none" stroke="#B5772A" stroke-width="1.3"/>
+    <text x="6" y="94" font-size="10" fill="#7A6A5E">Ativação (intensidade da expressão)</text>
+    <rect x="0" y="128" width="${W}" height="8" rx="3" fill="#EFE7DE"/>${gz}
+    <text x="6" y="148" font-size="10" fill="#7A6A5E">Faixa escura: olhar ou cabeça fora da tela</text>
+    <line class="vaCur" x1="-5" x2="-5" y1="2" y2="138" stroke="#2B211B" stroke-width="1.5"/>
+  </svg>`;
+}
+function vaSummary(i){
+  const S2=i.sinais||[]; if(S2.length<3)return '';
+  const look=Math.round(S2.filter(s=>s[5]).length/S2.length*100), vm=S2.reduce((a,s)=>a+s[1],0)/S2.length;
+  const vt=vm>0.15?'mais positiva':vm>0.04?'levemente positiva':vm<-0.15?'mais negativa':vm<-0.04?'levemente negativa':'neutra';
+  const peaks=[];[...S2].sort((a,b)=>b[2]-a[2]).forEach(s=>{if(peaks.length<3&&s[2]>0.25&&peaks.every(p=>Math.abs(p[0]-s[0])>20))peaks.push(s)});
+  const L=k=>{const ln=(i.transcript||[]).filter(l=>l.t<=k+1).pop();return ln?` title="${esc((ln.who==='C'?'Candidato':'Recrutador')+': '+ln.text.slice(0,120))}"`:''};
+  return `<div class="small" style="margin-top:8px">Olhar na tela: <b>${look}%</b> do tempo · Expressão no geral: <b>${vt}</b>${peaks.length?` · Picos de ativação: ${peaks.sort((a,b)=>a[0]-b[0]).map(p=>`<button class="btn sm ghost" style="padding:2px 9px;min-height:0" data-vat="${p[0]}"${L(p[0])}>${fmt(p[0])}</button>`).join(' ')}`:''}</div>
+  <p class="xs muted" style="margin-top:6px">Desviar o olhar é comum ao pensar ou lembrar algo, e não indica mentira. Use como apoio para rever momentos, nunca como conclusão.</p>`;
+}
+function bindVa(root,onT){
+  root.querySelectorAll('svg.va').forEach(svg=>svg.onclick=e=>{const r=svg.getBoundingClientRect();onT(Math.max(0,(e.clientX-r.left)/r.width*(+svg.dataset.dur)))});
+  root.querySelectorAll('[data-vat]').forEach(b=>b.onclick=()=>onT(+b.dataset.vat));
+}
 function faceLoop(){
   const v=$('#cam'); if(!room||!room.lm||!v)return;
   const bf=$('#bFacs'); if(bf){bf.style.display='';bf.onclick=()=>{room.showFacs=room.showFacs===false;bf.textContent='Marcações FACS: '+(room.showFacs===false?'desligadas':'ligadas');if(room.showFacs===false){const c=$('#facsCv');if(c)c.getContext('2d').clearRect(0,0,c.width,c.height)}}}
@@ -1226,7 +1291,7 @@ function faceLoop(){
     if(v.readyState>=2&&v.currentTime!==last){last=v.currentTime;
       try{const res=room.lm.detectForVideo(v,performance.now());
         const bs=res.faceBlendshapes&&res.faceBlendshapes[0]; const lmk=res.faceLandmarks&&res.faceLandmarks[0]; let m=null; if(bs){m={};bs.categories.forEach(c=>m[c.categoryName]=c.score)}
-        drawFacs(v,lmk||null,m,room.mode==='cam'); if(m&&(room.quality==null||room.quality>=0.35||!(room.calib&&room.calib.done)))scoreEkman(m);
+        drawFacs(v,lmk||null,m,room.mode==='cam'); if(m&&(room.quality==null||room.quality>=0.35||!(room.calib&&room.calib.done)))scoreEkman(m); poseGaze(lmk||null,m);
       }catch(e){}
     }
     room.raf=requestAnimationFrame(step);
@@ -1271,12 +1336,15 @@ function scoreEkman(b){
     if(v>ON&&!a) room.active[k]={start:t,peak:v};
     else if(a){a.peak=Math.max(a.peak,v); if(v<OFF){const dur=t-a.start; if(dur>200) addIndicio(k,a.peak,dur); delete room.active[k]}}
   }
+  { const L=room.levels, neg=Math.max(L.tristeza,L.raiva,L.medo,L.nojo,L.desprezo);
+    const aRaw=Math.min(1,(browIn+browOut+browDown+eyeWide+eyeSq+cheek+smile+jaw*0.5+stretch+press+sneer+upper)/2.2);
+    const o=room.va||{v:0,a:0}; room.va={v:o.v*0.85+Math.max(-1,Math.min(1,L.alegria-neg))*0.15,a:o.a*0.85+aRaw*0.15}; }
   drawBars();
 }
 function stopRoom(){ if(!room)return; clearInterval(room.tick); clearInterval(room.consentPoll); stopCam(); const i=cur(); if(i){i.duracao=room.elapsed;save()} room=null; }
 async function endInterview(){
   const i0=cur(); if(room&&room.rec) await stopRecording(i0,false);
-  (RECS[i0.id]||[]).forEach(r=>{if(!r.dl){downloadBlob(r.url,r.name);r.dl=true}}); if((RECS[i0.id]||[]).length)toast('Gravação salva no seu computador (pasta Downloads)');
+  if((RECS[i0.id]||[]).length)toast('Gravação guardada no Nuance. Para assistir: Revisar entrevista.');
   if(room&&room.online) stopOnline(true);
   const i=cur(); i.duracao=room.elapsed; i.status='concluida'; stopRoom(); save(); go('parecer',i.id);
 }
@@ -1511,7 +1579,25 @@ function candStop(){
 }
 
 /* gravação em vídeo: fica no computador do recrutador (sem servidor, sem custo) */
-const RECS={}; // iid -> [{url,name,size}]
+const RECS={}; // iid -> [{url,name,size,start}]  (cache em memória)
+/* Gravações ficam guardadas no próprio navegador (IndexedDB) deste computador: sem custo e sem enviar o vídeo para a internet */
+let idbP=null;
+function idb(){if(!idbP)idbP=new Promise((res,rej)=>{const r=indexedDB.open('nuance_rec',1);r.onupgradeneeded=()=>r.result.createObjectStore('rec',{keyPath:'key'});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});return idbP}
+async function idbOp(mode,fn){const db=await idb();return new Promise((res,rej)=>{const tx=db.transaction('rec',mode);const st=tx.objectStore('rec');const out=fn(st);tx.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);tx.onerror=()=>rej(tx.error)})}
+const recPut=o=>idbOp('readwrite',st=>st.put(o));
+const recAll=()=>idbOp('readonly',st=>st.getAll());
+const recDel=key=>idbOp('readwrite',st=>st.delete(key));
+async function loadRecs(i){
+  if((RECS[i.id]||[]).length)return RECS[i.id];
+  try{const all=(await recAll()).filter(r=>r.iid===i.id).sort((a,b)=>a.part-b.part);
+    RECS[i.id]=all.map(r=>({url:URL.createObjectURL(r.blob),name:r.name,size:r.blob.size,start:r.start||0,key:r.key}));}catch(e){RECS[i.id]=RECS[i.id]||[]}
+  return RECS[i.id];
+}
+async function delRecs(i){for(const r of (RECS[i.id]||[])){try{URL.revokeObjectURL(r.url)}catch(e){}}delete RECS[i.id];
+  try{for(const r of (await recAll()).filter(r=>r.iid===i.id))await recDel(r.key)}catch(e){}
+  i.gravacoes=[];save()}
+async function purgeOldRecs(){try{const dias=+S.settings.retencao||180, lim=Date.now()-dias*864e5;
+  for(const r of await recAll()){if(r.at<lim||!S.interviews.some(i=>i.id===r.iid))await recDel(r.key)}}catch(e){}}
 function recName(i,part){const d=new Date(),p=n=>String(n).padStart(2,'0');const clean=s=>String(s).replace(/[\\/:*?"<>|]+/g,'').trim();return `Nuance - ${clean(i.candidato)} - ${clean(i.vaga)} - ${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}h${p(d.getMinutes())}${part>1?' (parte '+part+')':''}.webm`}
 function downloadBlob(url,name){const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove()}
 function startRecording(i,remote){
@@ -1544,9 +1630,10 @@ function stopRecording(i,download){
     const done=()=>{
       if(!r.chunks.length){res();return}
       const blob=new Blob(r.chunks,{type:'video/webm'}), url=URL.createObjectURL(blob), name=recName(i,r.part);
-      (RECS[i.id]=RECS[i.id]||[]).push({url,name,size:blob.size,start:r.startAt||0});
+      const key=i.id+':'+r.part; (RECS[i.id]=RECS[i.id]||[]).push({url,name,size:blob.size,start:r.startAt||0,key});
+      recPut({key,iid:i.id,part:r.part,name,start:r.startAt||0,at:Date.now(),blob}).then(()=>{try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}}).catch(()=>{downloadBlob(url,name);toast('Não deu para guardar no navegador (sem espaço). O vídeo foi baixado para a pasta Downloads.')});
       i.gravacoes=(i.gravacoes||[]).concat([{name,size:blob.size,at:new Date().toISOString(),start:r.startAt||0}]); save();
-      if(download){downloadBlob(url,name);toast('Gravação salva no seu computador (pasta Downloads)')}
+      if(download)toast('Gravação guardada no Nuance (Entrevistas → Revisar)');
       res();
     };
     if(r.mr.state==='inactive')done(); else {r.mr.onstop=done; try{r.mr.stop()}catch(e){done()}}
@@ -1580,21 +1667,45 @@ function showTranscript(i,edit){
       const ia=q('ia'); if(ia) ia.onclick=async()=>{if(!aiOn()){toast('A IA não está disponível aqui. As leituras automáticas continuam.');return}const ok=await refineLeituras(i,ia);if(ok){toast('Leituras refinadas');showTranscript(i,false)}};
     });
 }
-function showRecording(i){
-  const mem=RECS[i.id]||[], saved=i.gravacoes||[];
-  const bym=indsByLine(i);
-  const tl=i.transcript.length?`<div class="xs muted" style="margin-top:6px">Clique num trecho para ir direto àquele momento do vídeo.</div><div class="transcript" id="recTl" style="max-height:28vh">${i.transcript.map((l,k)=>`<button class="tl" data-seek="${l.t}" style="text-align:left;border:0;background:none;width:100%;cursor:pointer"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}${indChips(i,bym[k],l.who,l)}</button>`).join('')}</div>`:'';
-  modal(`<div class="row"><h3 style="flex:1">Gravação · ${esc(i.candidato)}</h3><button class="btn sm ghost" data-m="x" aria-label="Fechar">✕</button></div>
-    <div id="recBody">${mem.length?mem.map((r,k)=>`<video controls src="${r.url}" data-start="${r.start||0}" style="width:100%;border-radius:10px;background:#000"></video><div class="row"><span class="small" style="flex:1;word-break:break-all">${esc(r.name)}</span><button class="btn sm" data-rd="${k}">Baixar</button></div>`).join(''):
-      saved.length?`<p class="small">O vídeo foi salvo no computador usado na entrevista, na pasta <b>Downloads</b>:</p>${saved.map(g=>`<div class="small" style="word-break:break-all">• ${esc(g.name)}${g.size?` (${Math.round(g.size/1048576)} MB)`:''}</div>`).join('')}<p class="xs muted" style="margin-top:8px">Para assistir aqui, selecione o arquivo abaixo.</p>`:
-      `<p class="small muted">Esta entrevista não tem gravação registrada. Ela só acontece quando a vaga tem "Gravação em vídeo" ligada e o candidato autoriza no termo.</p>`}</div>
-    <label class="btn sm ghost" style="cursor:pointer;align-self:flex-start">Abrir arquivo de vídeo do computador<input type="file" accept="video/*,.webm" id="recFile" class="sr"></label>
-    ${tl}`,b=>{
-      b.closest('.card').style.maxWidth='800px';
+async function showRecording(i,seekT){
+  const mem=await loadRecs(i), saved=i.gravacoes||[], bym=indsByLine(i);
+  const who=l=>l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador';
+  const tl=i.transcript.length?`<div class="transcript" id="recTl" style="max-height:34vh">${i.transcript.map((l,k)=>`<button class="tl" data-seek="${l.t}" data-k="${k}" style="text-align:left;border:0;background:none;width:100%;cursor:pointer;border-radius:8px"><span class="ts">${fmt(l.t)}</span><b>${who(l)}:</b> ${esc(l.text)}${indChips(i,bym[k],l.who,l)}</button>`).join('')}</div>`:'<p class="small muted">Sem transcrição.</p>';
+  const vid=mem.length?`${mem.length>1?`<div class="seg" role="group" aria-label="Partes da gravação">${mem.map((r,k)=>`<button data-part="${k}" class="${k?'':'on'}">Parte ${k+1}</button>`).join('')}</div>`:''}<video id="rvV" controls playsinline src="${mem[0].url}" data-start="${mem[0].start||0}" style="width:100%;border-radius:10px;background:#000;max-height:46vh"></video>`
+    :saved.length?`<p class="small">Esta gravação não está guardada neste navegador (foi feita em outro computador ou antes desta versão). Se tiver o arquivo, abra abaixo.</p>`
+    :`<p class="small muted">Sem gravação. Ela só acontece quando a vaga tem "Gravação em vídeo" ligada e o candidato autoriza no termo.</p>`;
+  modal(`<div class="row"><h3 style="flex:1">Revisar entrevista · ${esc(i.candidato)}</h3><button class="btn sm ghost" data-m="x" aria-label="Fechar">✕</button></div>
+    <div class="grid2" style="align-items:start;gap:14px">
+      <div class="stack" style="gap:8px"><div id="recBody" class="stack" style="gap:6px">${vid}</div>
+        <div id="rvNow" class="small" style="min-height:20px"></div>
+        ${vaChart(i)}${vaSummary(i)}
+        <div class="row" style="gap:6px">${mem.length?`<button class="btn sm ghost" id="rvDl">Baixar vídeo (opcional)</button><button class="btn sm ghost" id="rvDel">Apagar gravação</button>`:''}
+          <label class="btn sm ghost" style="cursor:pointer">Abrir arquivo do computador<input type="file" accept="video/*,.webm" id="recFile" class="sr"></label></div>
+        ${mem.length?`<p class="xs muted">Guardada só neste navegador e computador (${Math.round(mem.reduce((a,r)=>a+r.size,0)/1048576)} MB). Ela é apagada sozinha após ${esc(S.settings.retencao)} dias, ou quando você exclui os dados do candidato.</p>`:''}
+      </div>
+      <div class="stack" style="gap:6px"><b class="small">Transcrição com indícios</b><div class="xs muted">Clique numa fala, num pico ou no gráfico para ir ao momento.</div>${tl}</div>
+    </div>`,b=>{
+      b.closest('.card').style.maxWidth='1100px';
+      let cur=0;
+      const V=()=>b.querySelector('#rvV');
+      const seek=t=>{const v=V();if(!v){toast('Abra o arquivo de vídeo primeiro');return}const go=()=>{try{v.currentTime=Math.max(0,t-(+v.dataset.start||0)-1);v.play().catch(()=>{})}catch(e){}};v.readyState>=1?go():v.addEventListener('loadedmetadata',go,{once:true})};
+      const lines=[...b.querySelectorAll('[data-k]')], cursor=b.querySelector('.vaCur'), svg=b.querySelector('svg.va');
+      let lastK=-1;
+      const sync=()=>{const v=V();if(!v)return;const t=v.currentTime+(+v.dataset.start||0);
+        if(cursor&&svg){const x=(t/(+svg.dataset.dur)*600).toFixed(1);cursor.setAttribute('x1',x);cursor.setAttribute('x2',x)}
+        let k=-1;for(let j=0;j<i.transcript.length;j++){if(i.transcript[j].t<=t+0.3)k=j;else break}
+        if(k!==lastK){lastK=k;lines.forEach((el,j)=>el.style.background=j===k?'#F3E6D8':'none');if(k>=0){const el=lines[k],box=b.querySelector('#recTl');if(box&&!b.matches(':hover'))box.scrollTop=el.offsetTop-box.offsetTop-box.clientHeight/3;else if(box){const r=el.getBoundingClientRect(),R=box.getBoundingClientRect();if(r.top<R.top||r.bottom>R.bottom)box.scrollTop=el.offsetTop-box.offsetTop-box.clientHeight/3}}}
+        const sg=(i.sinais||[]).filter(s=>s[0]<=t).pop(), ind=(i.indicios||[]).filter(x=>Math.abs(x.t-t)<2.5).pop();
+        const nw=b.querySelector('#rvNow');if(nw)nw.innerHTML=`<b>${fmt(t)}</b>${sg?` · Olhar ${sg[5]?'na tela':'<span style="color:var(--warn)">desviado</span>'} · Valência ${sg[1]>=0?'+':''}${sg[1].toFixed(2)} · Ativação ${sg[2].toFixed(2)}`:''}${ind?` · Indício: <b style="color:${EMO[ind.emo].cor}">${EMO[ind.emo].nome}</b>`:''}`};
+      const wire=()=>{const v=V();if(v){v.ontimeupdate=sync;v.onseeked=sync}};wire();
       b.querySelector('[data-m=x]').onclick=()=>{b.querySelectorAll('video').forEach(v=>v.pause());closeModal()};
-      b.querySelectorAll('[data-rd]').forEach(x=>x.onclick=()=>{const r=mem[+x.dataset.rd];downloadBlob(r.url,r.name)});
-      b.querySelector('#recFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);const st=(saved.find(g=>g.name===f.name)||saved[0]||{}).start||0;b.querySelector('#recBody').innerHTML=`<video controls autoplay src="${url}" data-start="${st}" style="width:100%;border-radius:10px;background:#000"></video><div class="small" style="word-break:break-all">${esc(f.name)}</div>`};
-      b.querySelectorAll('[data-seek]').forEach(x=>x.onclick=()=>{const v=b.querySelector('#recBody video');if(!v){toast('Abra o arquivo de vídeo primeiro');return}const t=Math.max(0,+x.dataset.seek-(+v.dataset.start||0)-1);try{v.currentTime=t;v.play().catch(()=>{})}catch(e){}});
+      b.querySelectorAll('[data-part]').forEach(x=>x.onclick=()=>{cur=+x.dataset.part;const v=V();v.src=mem[cur].url;v.dataset.start=mem[cur].start||0;b.querySelectorAll('[data-part]').forEach(y=>y.classList.toggle('on',y===x))});
+      const dl=b.querySelector('#rvDl');if(dl)dl.onclick=()=>{const r=mem[cur];downloadBlob(r.url,r.name)};
+      const del=b.querySelector('#rvDel');if(del)del.onclick=()=>{if(!confirm('Apagar a gravação desta entrevista deste computador? A transcrição e o parecer continuam.'))return;delRecs(i).then(()=>{closeModal();toast('Gravação apagada');go(view,curId)})};
+      b.querySelector('#recFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);const st=(saved.find(g=>g.name===f.name)||saved[0]||{}).start||0;b.querySelector('#recBody').innerHTML=`<video id="rvV" controls autoplay playsinline src="${url}" data-start="${st}" style="width:100%;border-radius:10px;background:#000;max-height:46vh"></video>`;wire()};
+      b.querySelectorAll('[data-seek]').forEach(x=>x.onclick=()=>seek(+x.dataset.seek));
+      bindVa(b,seek);
+      if(seekT!=null)seek(seekT); else sync();
     });
 }
 function vEntrevistas(){
@@ -1614,7 +1725,7 @@ function vEntrevistas(){
         <div class="row" style="gap:6px;margin-top:6px">${stPill(i)}${i.transcript.length?`<span class="pill gray">${i.transcript.length} falas</span>`:''}${hasRec?'<span class="pill ok">Com gravação</span>':''}${i.parecerFinal?`<span class="pill terra">${esc(i.parecerFinal)}</span>`:''}</div></div>
       <div class="row" style="gap:6px">
         <button class="btn sm" data-tr="${i.id}">Transcrição</button>
-        <button class="btn sm" data-rv="${i.id}">Gravação</button>
+        <button class="btn sm" data-rv="${i.id}">Revisar</button>
         ${i.status==='concluida'?`<button class="btn sm dark" data-go="parecer" data-id="${i.id}">Parecer</button>`:`<button class="btn sm dark" data-go="sala" data-id="${i.id}">Abrir sala</button>${i.status==='em_andamento'?`<button class="btn sm ghost" data-fin="${i.id}">Concluir</button>`:''}`}
       </div></div>`}).join(''):'<p class="muted small">Nenhuma entrevista encontrada.</p>'}
   </div>
@@ -1644,9 +1755,8 @@ function vParecer(){
         <p class="disclaimer">Você pode editar qualquer tópico. A IA não decide aprovação e não usa indícios de emoção como conclusão.</p></div>`})():''}
       ${(i.indicios.length||i.marks.length)?`<div class="card"><h3>Linha do tempo</h3><div class="timeline">${evs}${mks}</div><div class="legend">${Object.entries(EMO).filter(([k])=>i.indicios.some(x=>x.emo===k)).map(([k,e])=>`<span><i style="background:${e.cor}"></i>${e.nome}</span>`).join('')}${i.marks.length?'<span><i style="background:var(--ink)"></i>Suas marcações</span>':''}${i.indicios.some(x=>x.inc)?'<span><i style="outline:2px solid var(--warn);background:#fff"></i>Incongruência</span>':''}</div>
         <div class="small" style="margin-top:10px">${i.marks.map(m=>`<div>${fmt(m.t)} · <b>${esc(m.label)}</b>${m.note?' — '+esc(m.note):''}</div>`).join('')}</div></div>`:''}
-      ${(RECS[i.id]||[]).length||(i.gravacoes||[]).length?`<div class="card stack"><h3>Gravação</h3>
-        ${(RECS[i.id]||[]).length?(RECS[i.id]).map((r,k)=>`<video controls src="${r.url}" style="width:100%;border-radius:10px;background:#000"></video><div class="row"><span class="small" style="flex:1;word-break:break-all">${esc(r.name)} · ${(r.size/1048576).toFixed(0)} MB</span><button class="btn sm" data-rdl="${k}">${icon('copy')} Baixar de novo</button></div>`).join(''):`<p class="small muted">O arquivo foi salvo no computador usado na entrevista (pasta Downloads):</p>${i.gravacoes.map(g=>`<div class="small">${esc(g.name)}</div>`).join('')}`}
-        <p class="xs muted">Guarde o arquivo em uma pasta de acesso restrito e apague depois do prazo de retenção (${esc(S.settings.retencao)} dias).</p></div>`:''}
+      ${(i.sinais||[]).length>2||(i.gravacoes||[]).length?`<div class="card"><div class="row"><h3 style="flex:1">Revisar entrevista</h3><button class="btn sm" id="bRev">${(i.gravacoes||[]).length?'Assistir com transcrição e indícios':'Abrir revisão'}</button></div>
+        <p class="xs muted" style="margin-top:4px">Valência, ativação e olhar ao longo da entrevista. Clique no gráfico para ir ao momento${(i.gravacoes||[]).length?' na gravação':''}.</p>${vaChart(i)}${vaSummary(i)}</div>`:''}
       ${F.devolutiva?`<div class="card"><div class="row"><h3>Devolutiva ao candidato</h3><span class="spacer"></span><button class="btn sm" id="bDev">${icon('spark')} ${i.devolutiva?'Refazer':'Gerar'} rascunho</button></div><div id="devOut" style="margin-top:8px">${i.devolutiva?`<div class="msgbox">${esc(i.devolutiva)}</div><button class="btn sm ghost" id="cDev" style="margin-top:8px">${icon('copy')} Copiar</button>`:'<p class="small muted">Rascunho de retorno respeitoso, sem citar a análise de expressões.</p>'}</div></div>`:''}
     </div>
     <div class="stack">
@@ -1670,7 +1780,7 @@ function vParecer(){
   const ct=$('#cTr'); if(ct) ct.onclick=()=>copy(transcriptText(i));
   const et=$('#eTr'); if(et) et.onclick=()=>showTranscript(i,false);
   const dt=$('#dTr'); if(dt) dt.onclick=()=>downloadText(transcriptText(i),`Transcrição - ${fileSafe(i.candidato)} - ${fileSafe(i.vaga)}.txt`);
-  app.querySelectorAll('[data-rdl]').forEach(b=>b.onclick=()=>{const r=RECS[i.id][+b.dataset.rdl];downloadBlob(r.url,r.name)});
+  const bRev=$('#bRev'); if(bRev) bRev.onclick=()=>showRecording(i); bindVa(app,t=>showRecording(i,t));
   const parText=()=>{const t=tplOf(i);return `${i.candidato}\nCargo avaliado: ${i.vaga}\n\n`+t.secoes.filter(s=>s.ativa&&i.secoes[s.id]).map(s=>`${s.titulo}\n${i.secoes[s.id]}`).join('\n\n')+(i.parecerFinal?`\n\nParecer final: ${i.parecerFinal}`:'')+(t.rodape?`\n\n${t.rodape}`:'')};
   const cp=$('#cPar'); if(cp) cp.onclick=()=>copy(parText());
   app.querySelectorAll('[data-sec]').forEach(ta=>ta.addEventListener('input',()=>{i.secoes[ta.dataset.sec]=ta.value;save()}));
@@ -1840,7 +1950,7 @@ function vLgpd(){
   $('#sSave').onclick=()=>{const r=parseInt($('#sR').value,10); if(!$('#sE').value.trim()||!$('#sC').value.trim()){$('#sErr').textContent='Preencha empresa e e-mail.';return} if(!(r>=1&&r<=365)){$('#sErr').textContent='Retenção entre 1 e 365 dias.';return} st.empresa=$('#sE').value.trim();st.site=$('#sS').value.trim()||st.site;st.contato=$('#sC').value.trim();st.retencao=r;save();toast('Configurações salvas');vLgpd()};
   ['#sE','#sC','#sR'].forEach(s=>$(s).addEventListener('input',()=>$('#sErr').textContent=''));
   app.querySelectorAll('[data-exp]').forEach(b=>b.onclick=()=>{const i=S.interviews.find(x=>x.id===b.dataset.exp);copy(JSON.stringify({candidato:i.candidato,vaga:i.vaga,consentimento:S.consents.filter(c=>c.iid===i.id),transcricao:i.transcript,indicios:i.indicios,marcacoes:i.marks,parecer:i.parecer},null,2))});
-  app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const i=S.interviews.find(x=>x.id===b.dataset.del);confirmBox(`Excluir todos os dados de ${i.candidato}?`,'Excluir',()=>{S.interviews=S.interviews.filter(x=>x.id!==i.id);save();toast('Dados excluídos');vLgpd()})});
+  app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{const i=S.interviews.find(x=>x.id===b.dataset.del);confirmBox(`Excluir todos os dados de ${i.candidato}?`,'Excluir',()=>{delRecs(i);S.interviews=S.interviews.filter(x=>x.id!==i.id);save();toast('Dados excluídos');vLgpd()})});
 }
 
 applyMode(); go(isCand()?'candidato':'home');
