@@ -940,10 +940,30 @@ function refreshIndCtx(i){
   save();
   if(newInc&&i.features.sugestoes&&room){exitRapport();setSuggestion(EMO[newInc.emo].dica.split(': ').slice(1).join(': ').replace(/^"|"$/g,'')||EMO[newInc.emo].dica,'Incongruência: fala positiva com indício de '+EMO[newInc.emo].nome.toLowerCase()+' em '+fmt(newInc.t)+'.')}
 }
+/* indícios de expressão ligados a cada fala (inclusive reações durante as perguntas do recrutador) */
+function indsByLine(i){
+  const map={}; const L=i.transcript;
+  (i.indicios||[]).forEach(x=>{
+    let best=-1,score=1e9;
+    L.forEach((l,k)=>{const end=(L[k+1]?Math.min(L[k+1].t,l.t+14):l.t+14);let d=x.t>=l.t&&x.t<end?0:(x.t<l.t?l.t-x.t:x.t-end);if(d===0&&l.who==='C')d=-1;if(d<score){score=d;best=k}});
+    if(best>=0&&score<=4)(map[best]=map[best]||[]).push(x);
+  });
+  return map;
+}
+function indChips(i,list,who){
+  if(!list||!list.length)return '';
+  const first=i.candidato.split(' ')[0];
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 2px 0">${who==='R'?`<span class="xs muted" style="align-self:center">Reação de ${esc(first)}:</span>`:''}${list.map(x=>{const e=EMO[x.emo];return `<span class="pill" title="${esc(e.au)}" style="background:${e.cor}22;color:${e.cor};border:1px solid ${e.cor}55">${x.inc?'⚠ ':''}${e.nome} ${Math.round(x.v*100)}% · ${fmt(x.t)}${x.micro?' · breve':''}</span>`}).join('')}</div>`;
+}
+function indText(i,list,who){
+  if(!list||!list.length)return '';
+  return `\n    [${who==='R'?'Reação de '+i.candidato.split(' ')[0]+': ':'Expressões: '}${list.map(x=>`${EMO[x.emo].nome.toLowerCase()} ${Math.round(x.v*100)}% às ${fmt(x.t)}${x.inc?' (incongruente com a fala)':''}`).join('; ')}]`;
+}
 function renderTranscript(){
   const tr=$('#tr'); if(!tr)return; const i=cur();
   const incIdx=i.indicios.filter(x=>x.inc).map(x=>x.lineIdx);
-  tr.innerHTML=i.transcript.length?i.transcript.map((l,idx)=>`<div class="tl ${incIdx.includes(idx)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Você'}:</b> ${esc(l.text)}</div>`).join(''):'<p class="small muted">A transcrição aparece aqui (com alguns segundos de atraso).</p>';
+  const bym=indsByLine(i);
+  tr.innerHTML=i.transcript.length?i.transcript.map((l,idx)=>`<div class="tl ${incIdx.includes(idx)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Você'}:</b> ${esc(l.text)}${indChips(i,bym[idx],l.who)}</div>`).join(''):'<p class="small muted">A transcrição aparece aqui (com alguns segundos de atraso).</p>';
   tr.scrollTop=tr.scrollHeight;
 }
 function addIndicio(emo,v,dur){
@@ -1397,13 +1417,14 @@ function stopRecording(i,download){
 }
 
 /* ---------- ENTREVISTAS (arquivo: transcrições, gravações, pareceres) ---------- */
-function transcriptText(i){return `Entrevista: ${i.candidato}\nVaga: ${i.vaga}\nCódigo: ${i.code}\nData: ${new Date(i.createdAt).toLocaleString('pt-BR')}\nDuração: ${fmt(i.duracao||0)}\n\n`+i.transcript.map(l=>`[${fmt(l.t)}] ${l.who==='C'?i.candidato:'Recrutador'}: ${l.text}`).join('\n')}
+function transcriptText(i){return `Entrevista: ${i.candidato}\nVaga: ${i.vaga}\nCódigo: ${i.code}\nData: ${new Date(i.createdAt).toLocaleString('pt-BR')}\nDuração: ${fmt(i.duracao||0)}\n\n`+(()=>{const bym=indsByLine(i);return i.transcript.map((l,k)=>`[${fmt(l.t)}] ${l.who==='C'?i.candidato:'Recrutador'}: ${l.text}${indText(i,bym[k],l.who)}`).join('\n')})()+((i.indicios||[]).length?'\n\nObservação: os indícios de expressão são hipóteses geradas automaticamente a partir da leitura do rosto e não devem ser usados como critério de aprovação ou reprovação.':'')}
 function fileSafe(s){return String(s).replace(/[\\/:*?"<>|]+/g,'').trim()}
 function downloadText(text,name){const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));downloadBlob(url,name);setTimeout(()=>URL.revokeObjectURL(url),5000)}
 function showTranscript(i){
   modal(`<div class="row"><h3 style="flex:1">Transcrição · ${esc(i.candidato)}</h3><button class="btn sm ghost" data-m="x" aria-label="Fechar">✕</button></div>
     <div class="xs muted">${esc(i.vaga)} · ${new Date(i.createdAt).toLocaleDateString('pt-BR')} · ${i.transcript.length} falas</div>
-    <div class="transcript" style="max-height:55vh">${i.transcript.length?i.transcript.map(l=>`<div class="tl"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}</div>`).join(''):'<p class="small muted">Nenhuma fala transcrita nesta entrevista.</p>'}</div>
+    ${(i.indicios||[]).length?'<div class="xs muted">Embaixo de cada fala aparecem os indícios lidos no rosto da candidata naquele momento (hipóteses, não conclusões).</div>':''}
+    <div class="transcript" style="max-height:55vh">${i.transcript.length?(()=>{const bym=indsByLine(i);return i.transcript.map((l,k)=>`<div class="tl ${(bym[k]||[]).some(x=>x.inc)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}${indChips(i,bym[k],l.who)}</div>`).join('')})():'<p class="small muted">Nenhuma fala transcrita nesta entrevista.</p>'}</div>
     <div class="row"><span class="spacer"></span><button class="btn sm" data-m="c">${icon('copy')} Copiar</button><button class="btn sm primary" data-m="d">Baixar .txt</button></div>`,b=>{
       b.closest('.card').style.maxWidth='720px';
       b.querySelector('[data-m=x]').onclick=closeModal;
@@ -1487,7 +1508,7 @@ function vParecer(){
         </div>`}).join('')}</div></div>
       ${F.pares?`<div class="card stack"><h3>Avaliação por pares</h3>${i.pares.map(p=>`<div class="small"><b>${esc(p.autor)}:</b> ${esc(p.texto)}</div>`).join('')||'<p class="small muted">Nenhum comentário ainda.</p>'}
         <div><label class="f" for="pA">Quem avalia</label><input id="pA" type="text" placeholder="Gestor da área"></div><div><label class="f" for="pT">Comentário</label><textarea id="pT" style="min-height:70px" placeholder="O que você observou na gravação?"></textarea></div><p id="pErr" class="small" style="color:#A3301E;min-height:18px"></p><button class="btn sm" id="bPar2">Adicionar comentário</button></div>`:''}
-      ${F.gravacao&&i.transcript.length?`<div class="card"><div class="row"><h3>Transcrição</h3><span class="spacer"></span><button class="btn sm ghost" id="cTr">${icon('copy')} Copiar</button><button class="btn sm ghost" id="dTr">Baixar .txt</button></div><div class="transcript" style="max-height:320px;margin-top:8px">${i.transcript.map(l=>`<div class="tl"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}</div>`).join('')}</div></div>`:''}
+      ${F.gravacao&&i.transcript.length?`<div class="card"><div class="row"><h3>Transcrição</h3><span class="spacer"></span><button class="btn sm ghost" id="cTr">${icon('copy')} Copiar</button><button class="btn sm ghost" id="dTr">Baixar .txt</button></div><div class="transcript" style="max-height:420px;margin-top:8px">${(()=>{const bym=indsByLine(i);return i.transcript.map((l,k)=>`<div class="tl ${(bym[k]||[]).some(x=>x.inc)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}${indChips(i,bym[k],l.who)}</div>`).join('')})()}</div></div>`:''}
     </div>
   </div>`;
   app.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{const[ci,n]=b.dataset.lv.split(':');const c=i.competencias[+ci];c.nivel=c.nivel===n?null:n;save();vParecer()});
