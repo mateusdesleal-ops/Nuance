@@ -950,20 +950,56 @@ function indsByLine(i){
   });
   return map;
 }
-function indChips(i,list,who){
+/* legenda (leitura possível) de cada indício: sempre hipótese, ligada ao assunto, com o que fazer */
+const LEIT={
+  alegria:t=>`Possível entusiasmo ${t?'ao falar '+t:'neste momento'}: vale explorar o que motivou.`,
+  tristeza:t=>`Possível desconforto ${t?'ao falar '+t:'neste ponto'}: vale acolher e aprofundar com calma.`,
+  surpresa:(t,r)=>r?'A pergunta pode ter sido inesperada: dê tempo para a resposta.':`Possível surpresa ${t?'ao falar '+t:''}: vale confirmar o que chamou atenção.`,
+  medo:t=>`Possível insegurança ou tensão ${t?'ao falar '+t:'neste ponto'}: vale pedir um exemplo concreto.`,
+  raiva:t=>`Possível incômodo ${t?'ao falar '+t:'com o tema'}: vale perguntar o que mais incomodou.`,
+  nojo:t=>`Possível rejeição ${t?'ao falar '+t:'ao cenário descrito'}: vale perguntar o que mudaria.`,
+  desprezo:t=>`Possível discordância ou distanciamento ${t?'ao falar '+t:''}: vale pedir uma situação específica.`
+};
+function topicOf(text){if(!text)return '';const sents=text.split(/(?<=[.!?…])\s+|\.\.\.\s*/).map(x=>x.replace(/^(claro|bom|então|olha|é|ah|eh|tá|sim|não|nossa|pois é)[,!.…\s]+/i,'').trim()).filter(x=>x.split(/\s+/).length>=4);const s0=sents[0]||text;const words=s0.replace(/[.!?…]+$/,'').split(/\s+/);return `sobre “${words.slice(0,8).join(' ')}${words.length>8?'…':''}”`}
+function leituraOf(i,x,line,who){
+  if(x.leitura)return x.leitura;
+  if(x.inc)return 'A fala positiva contrasta com a expressão: vale aprofundar com um exemplo concreto.';
+  const f=LEIT[x.emo]; return f?f(who==='R'?'':topicOf(line&&line.text),who==='R').replace(/\s+:/,':'):'';
+}
+async function refineLeituras(i,btn){
+  const L=i.transcript, bym=indsByLine(i), items=[];
+  Object.entries(bym).forEach(([k,list])=>list.forEach(x=>{const idx=i.indicios.indexOf(x);const l=L[+k];const prevQ=[...L.slice(0,+k+1)].reverse().find(z=>z.who==='R');items.push({id:idx,momento:fmt(x.t),emocao:EMO[x.emo].nome,intensidade:Math.round(x.v*100)+'%',incongruente:!!x.inc,durante:l.who==='R'?'pergunta do recrutador':'fala do candidato',fala:l.text.slice(0,300),pergunta_anterior:prevQ?prevQ.text.slice(0,200):''})}));
+  if(!items.length||!aiOn())return false;
+  if(btn){btn.innerHTML='<span class="spin"></span> Gerando leituras…';btn.disabled=true}
+  try{
+    const r=await ai(`Você ajuda um recrutador a interpretar indícios de expressão facial (baseados em Paul Ekman) registrados durante uma entrevista de emprego para ${i.vaga}. Para cada item, escreva UMA legenda curta (até 22 palavras) em português do Brasil que combine a emoção com O QUE estava sendo dito, no formato: "Possível <estado> ao falar de <assunto>: <o que o recrutador pode fazer>".
+Regras obrigatórias:
+- Sempre como hipótese ("possível", "pode indicar"), nunca como certeza ou conclusão.
+- Fale do momento e do assunto, nunca do caráter da pessoa (não use "é inseguro", "mentiu", "não é confiável").
+- Não fale de saúde, diagnósticos, mentira ou honestidade.
+- Se o indício aconteceu durante a pergunta do recrutador, descreva como reação à pergunta.
+Itens: ${JSON.stringify(items)}
+Responda só em JSON: {"leituras":[{"id":0,"texto":"..."}]}`,true);
+    (r&&r.leituras||[]).forEach(o=>{const x=i.indicios[+o.id];if(x&&o.texto&&!/mentir|mentiu|mentira|desonest|n[aã]o [eé] confi/i.test(o.texto)){x.leitura=String(o.texto).trim();x.leituraIA=true}});
+    save(); return true;
+  }catch(e){aiErr(e);return false}
+  finally{if(btn){btn.innerHTML=icon('spark')+' Refinar leituras com IA';btn.disabled=false}}
+}
+function indChips(i,list,who,line){
   if(!list||!list.length)return '';
   const first=i.candidato.split(' ')[0];
-  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 2px 0">${who==='R'?`<span class="xs muted" style="align-self:center">Reação de ${esc(first)}:</span>`:''}${list.map(x=>{const e=EMO[x.emo];return `<span class="pill" title="${esc(e.au)}" style="background:${e.cor}22;color:${e.cor};border:1px solid ${e.cor}55">${x.inc?'⚠ ':''}${e.nome} ${Math.round(x.v*100)}% · ${fmt(x.t)}${x.micro?' · breve':''}</span>`}).join('')}</div>`;
+  return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 2px 0">${who==='R'?`<span class="xs muted" style="align-self:center">Reação de ${esc(first)}:</span>`:''}${list.map(x=>{const e=EMO[x.emo];return `<span class="pill" title="${esc(e.au)}" style="background:${e.cor}22;color:${e.cor};border:1px solid ${e.cor}55">${x.inc?'⚠ ':''}${e.nome} ${Math.round(x.v*100)}% · ${fmt(x.t)}${x.micro?' · breve':''}</span>`}).join('')}</div>`+
+    list.map(x=>{const t=leituraOf(i,x,line,who);return t?`<div class="xs" style="color:var(--ink2);font-style:italic;margin:2px 0 0 2px">Leitura possível${x.leituraIA?' (IA)':''}: ${esc(t)}</div>`:''}).join('');
 }
-function indText(i,list,who){
+function indText(i,list,who,line){
   if(!list||!list.length)return '';
-  return `\n    [${who==='R'?'Reação de '+i.candidato.split(' ')[0]+': ':'Expressões: '}${list.map(x=>`${EMO[x.emo].nome.toLowerCase()} ${Math.round(x.v*100)}% às ${fmt(x.t)}${x.inc?' (incongruente com a fala)':''}`).join('; ')}]`;
+  return `\n    [${who==='R'?'Reação de '+i.candidato.split(' ')[0]+': ':'Expressões: '}${list.map(x=>`${EMO[x.emo].nome.toLowerCase()} ${Math.round(x.v*100)}% às ${fmt(x.t)}${x.inc?' (incongruente com a fala)':''}`).join('; ')}]`+list.map(x=>{const t=leituraOf(i,x,line,who);return t?`\n    Leitura possível: ${t}`:''}).join('');
 }
 function renderTranscript(){
   const tr=$('#tr'); if(!tr)return; const i=cur();
   const incIdx=i.indicios.filter(x=>x.inc).map(x=>x.lineIdx);
   const bym=indsByLine(i);
-  tr.innerHTML=i.transcript.length?i.transcript.map((l,idx)=>`<div class="tl ${incIdx.includes(idx)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Você'}:</b> ${esc(l.text)}${indChips(i,bym[idx],l.who)}</div>`).join(''):'<p class="small muted">A transcrição aparece aqui (com alguns segundos de atraso).</p>';
+  tr.innerHTML=i.transcript.length?i.transcript.map((l,idx)=>`<div class="tl ${incIdx.includes(idx)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Você'}:</b> ${esc(l.text)}${indChips(i,bym[idx],l.who,l)}</div>`).join(''):'<p class="small muted">A transcrição aparece aqui (com alguns segundos de atraso).</p>';
   tr.scrollTop=tr.scrollHeight;
 }
 function addIndicio(emo,v,dur){
@@ -1219,34 +1255,46 @@ const CAM_OFF=`${'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" st
 /* transcrição pelo servidor (Whisper), uma voz por stream */
 const HALLU=/amara\.org|legendas pela|inscreva-se|obrigad[oa] por assistir|tchau,? tchau|^\W*$|^(obrigad[oa]\.?|tchau\.?)$/i;
 let txMode=null; // null desconhecido, 'server', 'off'
+function txPrompt(){const i=cur();if(!i)return '';const comps=(i.competencias||[]).map(c=>c.nome).join(', ');return `Entrevista de emprego em português do Brasil para a vaga de ${i.vaga} na empresa ${S.settings.empresa}. Participantes: ${i.candidato} (candidato) e o recrutador. Assuntos: trajetória, formação, experiências, ${comps}.`}
 function startTranscriber(stream,who,onText){
   if(typeof MediaRecorder==='undefined'||!stream.getAudioTracks().length)return null;
   const aStream=new MediaStream(stream.getAudioTracks());
   const lv=levelOf(aStream); const mime=['audio/webm;codecs=opus','audio/webm','audio/mp4'].find(m=>MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(m))||'';
-  let stopped=false, rec=null, peak=0, voiced=0, sampler=null;
+  // voz do recrutador: limiar um pouco maior para ignorar conversas distantes no ambiente
+  const THR=who==='R'?0.014:0.008;
+  let stopped=false, rec=null, peak=0, voiced=0, silentMs=0, segMs=0, sampler=null, t0=0;
+  const cut=()=>{try{rec&&rec.state!=='inactive'&&rec.stop()}catch(e){}};
   const cycle=()=>{
-    if(stopped)return; if(aStream.getAudioTracks().every(t=>t.readyState==='ended')){stopped=true;return} peak=0; voiced=0; const t0=now();
+    if(stopped)return; if(aStream.getAudioTracks().every(t=>t.readyState==='ended')){stopped=true;return}
+    peak=0; voiced=0; silentMs=0; segMs=0; t0=now();
     try{rec=new MediaRecorder(aStream,mime?{mimeType:mime}:{})}catch(e){return}
-    const chunks=[]; rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+    const chunks=[], myT0=t0; rec.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
     rec.onstop=async()=>{
       const p=peak, v=voiced; if(!stopped)cycle();
       const ctxOk=audioCtx&&audioCtx.state==='running';
-      if(txMode==='off'||!chunks.length||(ctxOk&&(p<0.01||v<3)))return;
+      if(txMode==='off'||!chunks.length||(ctxOk&&(p<THR*1.2||v<3)))return;
       const blob=new Blob(chunks,{type:mime||'audio/webm'});
       try{
-        const sb=await getSb(); const fd=new FormData(); fd.append('action','transcribe'); fd.append('audio',blob,'fala.'+(mime.includes('mp4')?'mp4':'webm'));
-        const res=await withTimeout(sb.functions.invoke('nuance-ai',{body:fd}),30000);
+        const sb=await getSb(); const fd=new FormData(); fd.append('action','transcribe'); fd.append('prompt',txPrompt()); fd.append('audio',blob,'fala.'+(mime.includes('mp4')?'mp4':'webm'));
+        const res=await withTimeout(sb.functions.invoke('nuance-ai',{body:fd}),40000);
         if(res.error){let code='upstream';try{code=(await res.error.context.json()).error}catch(x){} if(code==='missing_key'){txMode='off';onText(null,'missing_key')} return}
         txMode='server'; const text=String((res.data&&res.data.text)||'').trim();
-        if(text&&!HALLU.test(text))onText(text,null,t0);
+        if(text&&!HALLU.test(text)&&!isPromptEcho(text))onText(text,null,myT0);
       }catch(e){}
     };
-    try{rec.start()}catch(e){stopped=true;return} setTimeout(()=>{try{rec.state!=='inactive'&&rec.stop()}catch(e){}},10000);
+    try{rec.start()}catch(e){stopped=true;return}
   };
-  if(lv) sampler=setInterval(()=>{const x=lv.read();peak=Math.max(peak,x);if(x>0.008)voiced++},100);
+  // corta o áudio nas pausas da fala (e no máximo a cada 25 s), para não partir palavras
+  sampler=setInterval(()=>{
+    if(!rec||rec.state!=='recording')return;
+    const x=lv?lv.read():0.05; segMs+=100; peak=Math.max(peak,x);
+    if(x>THR){voiced++;silentMs=0}else silentMs+=100;
+    if((voiced>=5&&silentMs>=800&&segMs>=1500)||segMs>=25000||(voiced<3&&segMs>=8000))cut();
+  },100);
   cycle();
-  return {stop(){stopped=true;clearInterval(sampler);try{rec&&rec.state!=='inactive'&&rec.stop()}catch(e){}lv&&lv.close()},level:()=>lv?lv.read():0};
+  return {stop(){stopped=true;clearInterval(sampler);cut();lv&&lv.close()},level:()=>lv?lv.read():0};
 }
+function isPromptEcho(t){const x=t.toLowerCase();return x.startsWith('entrevista de emprego em português')||x.includes('participantes:')}
 
 /* recrutador */
 async function startOnline(){
@@ -1417,19 +1465,30 @@ function stopRecording(i,download){
 }
 
 /* ---------- ENTREVISTAS (arquivo: transcrições, gravações, pareceres) ---------- */
-function transcriptText(i){return `Entrevista: ${i.candidato}\nVaga: ${i.vaga}\nCódigo: ${i.code}\nData: ${new Date(i.createdAt).toLocaleString('pt-BR')}\nDuração: ${fmt(i.duracao||0)}\n\n`+(()=>{const bym=indsByLine(i);return i.transcript.map((l,k)=>`[${fmt(l.t)}] ${l.who==='C'?i.candidato:'Recrutador'}: ${l.text}${indText(i,bym[k],l.who)}`).join('\n')})()+((i.indicios||[]).length?'\n\nObservação: os indícios de expressão são hipóteses geradas automaticamente a partir da leitura do rosto e não devem ser usados como critério de aprovação ou reprovação.':'')}
+function transcriptText(i){return `Entrevista: ${i.candidato}\nVaga: ${i.vaga}\nCódigo: ${i.code}\nData: ${new Date(i.createdAt).toLocaleString('pt-BR')}\nDuração: ${fmt(i.duracao||0)}\n\n`+(()=>{const bym=indsByLine(i);return i.transcript.map((l,k)=>`[${fmt(l.t)}] ${l.who==='C'?i.candidato:'Recrutador'}: ${l.text}${indText(i,bym[k],l.who,l)}`).join('\n')})()+((i.indicios||[]).length?'\n\nObservação: os indícios de expressão são hipóteses geradas automaticamente a partir da leitura do rosto e não devem ser usados como critério de aprovação ou reprovação.':'')}
 function fileSafe(s){return String(s).replace(/[\\/:*?"<>|]+/g,'').trim()}
 function downloadText(text,name){const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));downloadBlob(url,name);setTimeout(()=>URL.revokeObjectURL(url),5000)}
-function showTranscript(i){
+function showTranscript(i,edit){
+  const bym=indsByLine(i), hasInd=(i.indicios||[]).length;
+  const lines=i.transcript.length?i.transcript.map((l,k)=>`<div class="tl ${(bym[k]||[]).some(x=>x.inc)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${edit?`<textarea data-ed="${k}" style="min-height:44px;margin-top:4px;font-size:14px">${esc(l.text)}</textarea>`:esc(l.text)}${indChips(i,bym[k],l.who,l)}</div>`).join(''):'<p class="small muted">Nenhuma fala transcrita nesta entrevista.</p>';
   modal(`<div class="row"><h3 style="flex:1">Transcrição · ${esc(i.candidato)}</h3><button class="btn sm ghost" data-m="x" aria-label="Fechar">✕</button></div>
     <div class="xs muted">${esc(i.vaga)} · ${new Date(i.createdAt).toLocaleDateString('pt-BR')} · ${i.transcript.length} falas</div>
-    ${(i.indicios||[]).length?'<div class="xs muted">Embaixo de cada fala aparecem os indícios lidos no rosto da candidata naquele momento (hipóteses, não conclusões).</div>':''}
-    <div class="transcript" style="max-height:55vh">${i.transcript.length?(()=>{const bym=indsByLine(i);return i.transcript.map((l,k)=>`<div class="tl ${(bym[k]||[]).some(x=>x.inc)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}${indChips(i,bym[k],l.who)}</div>`).join('')})():'<p class="small muted">Nenhuma fala transcrita nesta entrevista.</p>'}</div>
-    <div class="row"><span class="spacer"></span><button class="btn sm" data-m="c">${icon('copy')} Copiar</button><button class="btn sm primary" data-m="d">Baixar .txt</button></div>`,b=>{
-      b.closest('.card').style.maxWidth='720px';
+    ${hasInd&&!edit?'<div class="xs muted">Embaixo de cada fala aparecem os indícios lidos no rosto da candidata naquele momento e uma leitura possível. São hipóteses para orientar perguntas, não conclusões.</div>':''}
+    ${edit?'<div class="xs muted">Corrija o texto das falas e clique em Salvar.</div>':''}
+    <div class="transcript" style="max-height:55vh">${lines}</div>
+    <div class="row">${edit?'<span class="spacer"></span><button class="btn sm ghost" data-m="cancel">Cancelar</button><button class="btn sm primary" data-m="save">Salvar</button>':`${hasInd?`<button class="btn sm ghost" data-m="ia">${icon('spark')} Refinar leituras com IA</button>`:''}<button class="btn sm ghost" data-m="edit">Editar falas</button><span class="spacer"></span><button class="btn sm" data-m="c">${icon('copy')} Copiar</button><button class="btn sm primary" data-m="d">Baixar .txt</button>`}</div>`,b=>{
+      b.closest('.card').style.maxWidth='760px';
       b.querySelector('[data-m=x]').onclick=closeModal;
-      b.querySelector('[data-m=c]').onclick=()=>copy(transcriptText(i));
-      b.querySelector('[data-m=d]').onclick=()=>downloadText(transcriptText(i),`Transcrição - ${fileSafe(i.candidato)} - ${fileSafe(i.vaga)}.txt`);
+      const q=k=>b.querySelector(`[data-m=${k}]`);
+      if(edit){
+        q('cancel').onclick=()=>showTranscript(i,false);
+        q('save').onclick=()=>{b.querySelectorAll('[data-ed]').forEach(t=>{const l=i.transcript[+t.dataset.ed];const v=t.value.trim();if(l&&v&&v!==l.text){l.text=v;l.editado=true}});save();toast('Transcrição salva');showTranscript(i,false);if(view==='parecer')vParecer()};
+        return;
+      }
+      q('edit').onclick=()=>showTranscript(i,true);
+      q('c').onclick=()=>copy(transcriptText(i));
+      q('d').onclick=()=>downloadText(transcriptText(i),`Transcrição - ${fileSafe(i.candidato)} - ${fileSafe(i.vaga)}.txt`);
+      const ia=q('ia'); if(ia) ia.onclick=async()=>{if(!aiOn()){toast('A IA não está disponível aqui. As leituras automáticas continuam.');return}const ok=await refineLeituras(i,ia);if(ok){toast('Leituras refinadas');showTranscript(i,false)}};
     });
 }
 function showRecording(i){
@@ -1508,14 +1567,15 @@ function vParecer(){
         </div>`}).join('')}</div></div>
       ${F.pares?`<div class="card stack"><h3>Avaliação por pares</h3>${i.pares.map(p=>`<div class="small"><b>${esc(p.autor)}:</b> ${esc(p.texto)}</div>`).join('')||'<p class="small muted">Nenhum comentário ainda.</p>'}
         <div><label class="f" for="pA">Quem avalia</label><input id="pA" type="text" placeholder="Gestor da área"></div><div><label class="f" for="pT">Comentário</label><textarea id="pT" style="min-height:70px" placeholder="O que você observou na gravação?"></textarea></div><p id="pErr" class="small" style="color:#A3301E;min-height:18px"></p><button class="btn sm" id="bPar2">Adicionar comentário</button></div>`:''}
-      ${F.gravacao&&i.transcript.length?`<div class="card"><div class="row"><h3>Transcrição</h3><span class="spacer"></span><button class="btn sm ghost" id="cTr">${icon('copy')} Copiar</button><button class="btn sm ghost" id="dTr">Baixar .txt</button></div><div class="transcript" style="max-height:420px;margin-top:8px">${(()=>{const bym=indsByLine(i);return i.transcript.map((l,k)=>`<div class="tl ${(bym[k]||[]).some(x=>x.inc)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}${indChips(i,bym[k],l.who)}</div>`).join('')})()}</div></div>`:''}
+      ${F.gravacao&&i.transcript.length?`<div class="card"><div class="row"><h3>Transcrição</h3><span class="spacer"></span><button class="btn sm ghost" id="cTr">${icon('copy')} Copiar</button><button class="btn sm ghost" id="dTr">Baixar .txt</button><button class="btn sm ghost" id="eTr">Editar / leituras</button></div><div class="transcript" style="max-height:420px;margin-top:8px">${(()=>{const bym=indsByLine(i);return i.transcript.map((l,k)=>`<div class="tl ${(bym[k]||[]).some(x=>x.inc)?'flag':''}"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}${indChips(i,bym[k],l.who,l)}</div>`).join('')})()}</div></div>`:''}
     </div>
   </div>`;
   app.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{const[ci,n]=b.dataset.lv.split(':');const c=i.competencias[+ci];c.nivel=c.nivel===n?null:n;save();vParecer()});
   const bsl=$('#bSugLv'); if(bsl) bsl.onclick=()=>suggestLevels(i,bsl);
-  if(!i.competencias.some(c=>c.sug)&&i.transcript.some(l=>l.who==='C')&&!vParecer._auto?.[i.id]){vParecer._auto={...(vParecer._auto||{}),[i.id]:true};setTimeout(async()=>{const b=$('#bSugLv');if(!(b&&view==='parecer'&&curId===i.id))return;await suggestLevels(i,b);if(i.features.parecer){const bp=$('#bPar');if(bp){bp.innerHTML='<span class="spin"></span> Escrevendo…';bp.disabled=true}await fillSections(i,null,false);if(view==='parecer'&&curId===i.id)vParecer()}},300)}
+  if(!i.competencias.some(c=>c.sug)&&i.transcript.some(l=>l.who==='C')&&!vParecer._auto?.[i.id]){vParecer._auto={...(vParecer._auto||{}),[i.id]:true};setTimeout(async()=>{const b=$('#bSugLv');if(!(b&&view==='parecer'&&curId===i.id))return;await suggestLevels(i,b);if(i.features.parecer){const bp=$('#bPar');if(bp){bp.innerHTML='<span class="spin"></span> Escrevendo…';bp.disabled=true}await fillSections(i,null,false);if(view==='parecer'&&curId===i.id)vParecer()}if((i.indicios||[]).some(x=>!x.leituraIA)&&aiOn()){await refineLeituras(i);if(view==='parecer'&&curId===i.id)vParecer()}},300)}
   const trText=()=>i.transcript.map(l=>`[${fmt(l.t)}] ${l.who==='C'?i.candidato:'Recrutador'}: ${l.text}`).join('\n');
   const ct=$('#cTr'); if(ct) ct.onclick=()=>copy(transcriptText(i));
+  const et=$('#eTr'); if(et) et.onclick=()=>showTranscript(i,false);
   const dt=$('#dTr'); if(dt) dt.onclick=()=>downloadText(transcriptText(i),`Transcrição - ${fileSafe(i.candidato)} - ${fileSafe(i.vaga)}.txt`);
   app.querySelectorAll('[data-rdl]').forEach(b=>b.onclick=()=>{const r=RECS[i.id][+b.dataset.rdl];downloadBlob(r.url,r.name)});
   const parText=()=>{const t=tplOf(i);return `${i.candidato}\nCargo avaliado: ${i.vaga}\n\n`+t.secoes.filter(s=>s.ativa&&i.secoes[s.id]).map(s=>`${s.titulo}\n${i.secoes[s.id]}`).join('\n\n')+(i.parecerFinal?`\n\nParecer final: ${i.parecerFinal}`:'')+(t.rodape?`\n\n${t.rodape}`:'')};

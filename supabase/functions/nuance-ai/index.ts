@@ -14,7 +14,7 @@ const MAX_PROMPT = 40000;
 const PER_IP_PER_MIN = 60;
 const PER_DAY = 8000;
 const GROQ_MODELS = ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b"];
-const WHISPER_MODELS = ["whisper-large-v3-turbo", "whisper-large-v3"];
+const WHISPER_MODELS = ["whisper-large-v3", "whisper-large-v3-turbo"];
 const STUN = [{ urls: ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] }];
 
 function cors(origin: string | null) {
@@ -77,7 +77,7 @@ async function iceServers() {
   return { iceServers: STUN, turn: false };
 }
 
-async function transcribe(audio: File) {
+async function transcribe(audio: File, prompt: string) {
   const key = Deno.env.get("GROQ_API_KEY");
   if (!key) return { status: 503, error: "missing_key" };
   let last = { status: 500, error: "upstream" };
@@ -88,6 +88,7 @@ async function transcribe(audio: File) {
     fd.append("language", "pt");
     fd.append("response_format", "json");
     fd.append("temperature", "0");
+    if (prompt) fd.append("prompt", prompt.slice(0, 800));
     const r = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", { method: "POST", headers: { "Authorization": `Bearer ${key}` }, body: fd });
     if (r.ok) { const d = await r.json(); return { text: String(d.text ?? "").trim() }; }
     const t = await r.text();
@@ -145,7 +146,7 @@ Deno.serve(async (req) => {
     const audio = fd.get("audio");
     if (!(audio instanceof File) || audio.size < 1000 || audio.size > 6_000_000) return json({ error: "bad_audio" }, 400, origin);
     if (await rateLimited(ip)) return json({ error: "rate_limited" }, 429, origin);
-    const r = await transcribe(audio);
+    const r = await transcribe(audio, String(fd.get("prompt") ?? ""));
     if ("text" in r) return json({ text: r.text }, 200, origin);
     return json({ error: r.error }, r.status === 429 ? 429 : r.status === 503 ? 503 : 502, origin);
   }
