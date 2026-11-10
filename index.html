@@ -219,6 +219,10 @@ body.cand .brand{pointer-events:none}
 .btn.off{background:#FBE4E0;border-color:#A3301E;color:#A3301E}
 .callbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .unlock{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:4}
+.qbar{position:absolute;left:12px;right:110px;top:44px;display:none;align-items:center;gap:10px;z-index:3;pointer-events:none}
+.qbar b{font-size:11px;color:#fff;font-weight:600;white-space:nowrap;text-shadow:0 1px 2px #000}
+.qbar span{position:relative;flex:1;height:8px;border-radius:9px;background:linear-gradient(90deg,#C2412D,#D9A13B 45%,#3E9B5F)}
+.qbar span i{position:absolute;top:-3px;width:3px;height:14px;background:#fff;border-radius:2px;box-shadow:0 0 0 1px #0006}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -739,6 +743,8 @@ function vSala(){
         <video id="cam" playsinline muted style="display:none;position:absolute;inset:0"></video>
         <audio id="rAudio" autoplay playsinline></audio>
         <button class="btn primary unlock" id="bUnlock" style="display:none">Ativar som do candidato</button>
+        <div class="qbar" id="qBar"><b>Qualidade da imagem</b><span><i style="left:0"></i></span></div>
+        <button class="btn sm" id="bFacs" style="position:absolute;top:10px;right:10px;z-index:4;background:rgba(0,0,0,.45);color:#fff;border-color:rgba(255,255,255,.3);display:none">Marcações FACS: ligadas</button>
         <div class="caption" id="cap"></div>
         <div id="waitC" style="position:absolute;inset:0;display:${i.demo?'none':'flex'};flex-direction:column;align-items:center;justify-content:center;color:#bbb;text-align:center;padding:20px"><div class="spin" style="width:28px;height:28px;margin-bottom:10px"></div><div id="waitTxt">Aguardando ${esc(i.candidato.split(' ')[0])} entrar pelo link do candidato…</div><div class="xs" style="margin-top:6px">Código ${esc(i.code)}</div></div>
         <div class="self" style="overflow:hidden;padding:0">Você<video id="selfv" autoplay playsinline muted style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover"></video></div>
@@ -1111,6 +1117,7 @@ async function startCam(){
   } else msg.textContent='';
 }
 function stopCam(){
+  {const c=$('#facsCv');if(c)c.remove();const q=$('#qBar');if(q)q.style.display='none';const bf=$('#bFacs');if(bf)bf.style.display='none'}
   if(room&&room.rec){const ci=cur();if(ci)stopRecording(ci,false)}
   if(room&&room.online) stopOnline();
   if(room)['txR','txC'].forEach(k=>{if(room[k]){room[k].stop();room[k]=null}});
@@ -1130,14 +1137,96 @@ function startSpeech(){
   r.onend=()=>{if(!r._stop&&room&&(room.mode==='cam'||room.mode==='online')){try{r.start()}catch(e){}}};
   try{r.start()}catch(e){} room.recog=r;
 }
+/* ---------- marcações FACS no vídeo (MediaPipe: 478 pontos + 52 blendshapes -> unidades de ação de Ekman) ---------- */
+// AU: nome, blendshapes (média), pontos do rosto (índices MediaPipe) onde a etiqueta se ancora
+const AUS=[
+  {au:1, nome:'Sobrancelha interna erguida', bs:['browInnerUp'], pt:[9]},
+  {au:2, nome:'Sobrancelha externa erguida', bs:['browOuterUpLeft','browOuterUpRight'], pt:[70,300]},
+  {au:4, nome:'Sobrancelhas abaixadas', bs:['browDownLeft','browDownRight'], pt:[168]},
+  {au:5, nome:'Pálpebra superior erguida', bs:['eyeWideLeft','eyeWideRight'], pt:[159,386]},
+  {au:6, nome:'Bochecha elevada', bs:['cheekSquintLeft','cheekSquintRight'], pt:[205,425]},
+  {au:7, nome:'Pálpebras tensionadas', bs:['eyeSquintLeft','eyeSquintRight'], pt:[145,374]},
+  {au:9, nome:'Nariz franzido', bs:['noseSneerLeft','noseSneerRight'], pt:[197]},
+  {au:10,nome:'Lábio superior erguido', bs:['mouthUpperUpLeft','mouthUpperUpRight'], pt:[0]},
+  {au:12,nome:'Canto da boca puxado', bs:['mouthSmileLeft','mouthSmileRight'], pt:[61,291]},
+  {au:14,nome:'Covinha', bs:['mouthDimpleLeft','mouthDimpleRight'], pt:[61,291]},
+  {au:15,nome:'Canto da boca abaixado', bs:['mouthFrownLeft','mouthFrownRight'], pt:[61,291]},
+  {au:17,nome:'Queixo erguido', bs:['mouthShrugLower'], pt:[18]},
+  {au:20,nome:'Lábios esticados', bs:['mouthStretchLeft','mouthStretchRight'], pt:[61,291]},
+  {au:23,nome:'Lábios tensionados', bs:['mouthPressLeft','mouthPressRight'], pt:[14]},
+  {au:25,nome:'Lábios entreabertos', bs:['__lipsPart'], pt:[13]},
+  {au:26,nome:'Mandíbula aberta', bs:['jawOpen'], pt:[152]}
+];
+const FACS_LV=[[0.12,'A'],[0.25,'B'],[0.4,'C'],[0.55,'D'],[0.75,'E']];
+const LV_COL=['#F2D13D','#E7B92E','#C9A227','#B07A1E','#8A5A15'];
+function facsLevel(v){let k=-1;FACS_LV.forEach(([t],j)=>{if(v>=t)k=j});return k}
+function ensureOverlay(){
+  const box=$('#vid'); if(!box)return null; let c=$('#facsCv');
+  if(!c){c=document.createElement('canvas');c.id='facsCv';c.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2';box.appendChild(c)}
+  const r=box.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+  if(c.width!==Math.round(r.width*dpr)||c.height!==Math.round(r.height*dpr)){c.width=Math.round(r.width*dpr);c.height=Math.round(r.height*dpr)}
+  return c;
+}
+function mapPt(v,c,p,mirror){ // ponto normalizado do vídeo -> pixel do canvas, considerando object-fit: cover
+  const vw=v.videoWidth||640, vh=v.videoHeight||480, cw=c.width, ch=c.height, sc=Math.max(cw/vw,ch/vh);
+  const dx=(cw-vw*sc)/2, dy=(ch-vh*sc)/2; let x=p.x*vw*sc+dx, y=p.y*vh*sc+dy; if(mirror)x=cw-x; return [x,y];
+}
+let lumCv=null;
+function imageQuality(v,lm){
+  if(!lm)return 0;
+  let minx=1,maxx=0,miny=1,maxy=0; for(const p of lm){if(p.x<minx)minx=p.x;if(p.x>maxx)maxx=p.x;if(p.y<miny)miny=p.y;if(p.y>maxy)maxy=p.y}
+  const size=Math.min(1,(maxx-minx)/0.32);                               // rosto ocupando ~1/3 da largura = ideal
+  const eyeMid=(lm[33].x+lm[263].x)/2, eyeW=Math.abs(lm[263].x-lm[33].x)||0.01;
+  const frontal=Math.max(0,1-Math.abs(lm[1].x-eyeMid)/eyeW*2.2);          // nariz centrado entre os olhos
+  const now=performance.now();
+  if(!room.lumT||now-room.lumT>1000){room.lumT=now;try{lumCv=lumCv||document.createElement('canvas');lumCv.width=32;lumCv.height=18;const g=lumCv.getContext('2d',{willReadFrequently:true});g.drawImage(v,0,0,32,18);const d=g.getImageData(0,0,32,18).data;let s=0;for(let k=0;k<d.length;k+=4)s+=(d[k]*0.299+d[k+1]*0.587+d[k+2]*0.114);room.lum=s/(d.length/4)/255}catch(e){room.lum=0.5}}
+  const L=room.lum??0.5, light=L<0.12?L/0.12:L>0.85?Math.max(0,(1-L)/0.15):1;
+  return Math.max(0,Math.min(1,size*0.4+frontal*0.35+light*0.25))*(size<0.35||frontal<0.25||light<0.3?0.6:1);
+}
+function drawFacs(v,lm,b,mirror){
+  if(!room)return; const c=ensureOverlay(); if(!c)return; const g=c.getContext('2d'); g.clearRect(0,0,c.width,c.height);
+  const q=lm?imageQuality(v,lm):0; room.quality=room.quality==null?q:room.quality*0.8+q*0.2; drawQuality(room.quality);
+  if(!lm||!b||room.showFacs===false)return;
+  const dpr=window.devicePixelRatio||1, base=room.base||{};
+  const lipGap=Math.abs(lm[14].y-lm[13].y)/Math.max(0.01,Math.abs(lm[152].y-lm[10].y));
+  const val=k=>k==='__lipsPart'?Math.max(0,Math.min(1,(lipGap-0.012)/0.05)):Math.max(0,(b[k]||0)-(base[k]||0));
+  const act=AUS.map(a=>{const v2=a.bs.reduce((s,k)=>s+val(k),0)/a.bs.length;return {...a,v:v2,lv:facsLevel(v2)}}).filter(a=>a.lv>=0).sort((x,y)=>y.v-x.v).slice(0,6);
+  // contorno discreto do rosto
+  g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=1*dpr;g.beginPath();
+  [10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109,10].forEach((k,j)=>{const [x,y]=mapPt(v,c,lm[k],mirror);j?g.lineTo(x,y):g.moveTo(x,y)});g.stroke();
+  const fs=12*dpr; g.font=`600 ${fs}px Manrope, system-ui, sans-serif`;
+  const faceR=mapPt(v,c,lm[454],mirror)[0], faceL=mapPt(v,c,lm[234],mirror)[0]; const right=Math.max(faceR,faceL), left=Math.min(faceR,faceL);
+  const usedR=[], usedL=[];
+  act.forEach(a=>{
+    const pts=a.pt.map(k=>mapPt(v,c,lm[k],mirror)); const preferL=a.pt.length>1&&usedR.length>usedL.length+1; const p=pts.length>1?((pts[0][0]>pts[1][0])!==preferL?pts[0]:pts[1]):pts[0];
+    const mid=(left+right)/2, centered=a.pt.length===1&&Math.abs(p[0]-mid)<(right-left)*0.12;
+    const toRight=centered?usedR.length<=usedL.length:p[0]>=mid; const label=`AU${a.au} · ${a.nome}`; const tw=g.measureText(label).width;
+    const used=toRight?usedR:usedL; let ly=p[1]; while(used.some(u=>Math.abs(u-ly)<fs*2.6))ly+=fs*2.6; used.push(ly);
+    let lx=toRight?Math.min(c.width-tw-16*dpr,right+18*dpr):Math.max(8*dpr,left-18*dpr-tw-12*dpr);
+    // ponto, linha, etiqueta
+    g.fillStyle='#fff';g.strokeStyle='#fff';g.lineWidth=1.5*dpr;
+    g.beginPath();g.arc(p[0],p[1],4*dpr,0,7);g.stroke();
+    g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(toRight?lx-4*dpr:lx+tw+16*dpr,ly);g.stroke();
+    g.fillStyle='rgba(60,60,60,.82)';g.fillRect(lx-4*dpr,ly-fs*0.9,tw+16*dpr,fs*1.7);
+    g.fillStyle='#fff';g.fillText(label,lx+4*dpr,ly+fs*0.35);
+    const sw=(tw+16*dpr)/5; for(let k=0;k<5;k++){g.fillStyle=k<=a.lv?LV_COL[k]:'rgba(255,255,255,.18)';g.fillRect(lx-4*dpr+k*sw+1,ly+fs*0.85,sw-2,4*dpr)}
+  });
+}
+function drawQuality(q){
+  const el=$('#qBar'); if(!el)return; el.style.display='flex';
+  el.querySelector('i').style.left=Math.round(q*100)+'%';
+  el.querySelector('b').textContent=q<0.35?'Qualidade da imagem baixa: indícios pausados':q<0.6?'Qualidade da imagem razoável':'Qualidade da imagem boa';
+}
 function faceLoop(){
   const v=$('#cam'); if(!room||!room.lm||!v)return;
+  const bf=$('#bFacs'); if(bf){bf.style.display='';bf.onclick=()=>{room.showFacs=room.showFacs===false;bf.textContent='Marcações FACS: '+(room.showFacs===false?'desligadas':'ligadas');if(room.showFacs===false){const c=$('#facsCv');if(c)c.getContext('2d').clearRect(0,0,c.width,c.height)}}}
   let last=-1;
   const step=()=>{
     if(!room||!room.lm)return;
     if(v.readyState>=2&&v.currentTime!==last){last=v.currentTime;
       try{const res=room.lm.detectForVideo(v,performance.now());
-        const bs=res.faceBlendshapes&&res.faceBlendshapes[0]; if(bs){const m={};bs.categories.forEach(c=>m[c.categoryName]=c.score);scoreEkman(m)}
+        const bs=res.faceBlendshapes&&res.faceBlendshapes[0]; const lmk=res.faceLandmarks&&res.faceLandmarks[0]; let m=null; if(bs){m={};bs.categories.forEach(c=>m[c.categoryName]=c.score)}
+        drawFacs(v,lmk||null,m,room.mode==='cam'); if(m&&(room.quality==null||room.quality>=0.35||!(room.calib&&room.calib.done)))scoreEkman(m);
       }catch(e){}
     }
     room.raf=requestAnimationFrame(step);
@@ -1438,7 +1527,7 @@ function startRecording(i,remote){
   let mr; try{mr=new MediaRecorder(new MediaStream(tracks),{...(mime?{mimeType:mime}:{}),videoBitsPerSecond:1000000,audioBitsPerSecond:64000})}catch(e){toast('Este navegador não conseguiu iniciar a gravação.');return}
   const part=((RECS[i.id]||[]).length)+1, chunks=[];
   mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
-  room.rec={mr,chunks,part,t0:Date.now()};
+  room.rec={mr,chunks,part,t0:Date.now(),startAt:now()};
   mr.start(4000);
   const tag=$('#recTag'); if(tag) tag.style.display='';
   room.recTimer=setInterval(()=>{const t=$('#recTime');if(t&&room&&room.rec)t.textContent=fmt((Date.now()-room.rec.t0)/1000)},1000);
@@ -1455,8 +1544,8 @@ function stopRecording(i,download){
     const done=()=>{
       if(!r.chunks.length){res();return}
       const blob=new Blob(r.chunks,{type:'video/webm'}), url=URL.createObjectURL(blob), name=recName(i,r.part);
-      (RECS[i.id]=RECS[i.id]||[]).push({url,name,size:blob.size});
-      i.gravacoes=(i.gravacoes||[]).concat([{name,size:blob.size,at:new Date().toISOString()}]); save();
+      (RECS[i.id]=RECS[i.id]||[]).push({url,name,size:blob.size,start:r.startAt||0});
+      i.gravacoes=(i.gravacoes||[]).concat([{name,size:blob.size,at:new Date().toISOString(),start:r.startAt||0}]); save();
       if(download){downloadBlob(url,name);toast('Gravação salva no seu computador (pasta Downloads)')}
       res();
     };
@@ -1493,15 +1582,19 @@ function showTranscript(i,edit){
 }
 function showRecording(i){
   const mem=RECS[i.id]||[], saved=i.gravacoes||[];
+  const bym=indsByLine(i);
+  const tl=i.transcript.length?`<div class="xs muted" style="margin-top:6px">Clique num trecho para ir direto àquele momento do vídeo.</div><div class="transcript" id="recTl" style="max-height:28vh">${i.transcript.map((l,k)=>`<button class="tl" data-seek="${l.t}" style="text-align:left;border:0;background:none;width:100%;cursor:pointer"><span class="ts">${fmt(l.t)}</span><b>${l.who==='C'?esc(i.candidato.split(' ')[0]):'Recrutador'}:</b> ${esc(l.text)}${indChips(i,bym[k],l.who,l)}</button>`).join('')}</div>`:'';
   modal(`<div class="row"><h3 style="flex:1">Gravação · ${esc(i.candidato)}</h3><button class="btn sm ghost" data-m="x" aria-label="Fechar">✕</button></div>
-    <div id="recBody">${mem.length?mem.map((r,k)=>`<video controls src="${r.url}" style="width:100%;border-radius:10px;background:#000"></video><div class="row"><span class="small" style="flex:1;word-break:break-all">${esc(r.name)}</span><button class="btn sm" data-rd="${k}">Baixar</button></div>`).join(''):
+    <div id="recBody">${mem.length?mem.map((r,k)=>`<video controls src="${r.url}" data-start="${r.start||0}" style="width:100%;border-radius:10px;background:#000"></video><div class="row"><span class="small" style="flex:1;word-break:break-all">${esc(r.name)}</span><button class="btn sm" data-rd="${k}">Baixar</button></div>`).join(''):
       saved.length?`<p class="small">O vídeo foi salvo no computador usado na entrevista, na pasta <b>Downloads</b>:</p>${saved.map(g=>`<div class="small" style="word-break:break-all">• ${esc(g.name)}${g.size?` (${Math.round(g.size/1048576)} MB)`:''}</div>`).join('')}<p class="xs muted" style="margin-top:8px">Para assistir aqui, selecione o arquivo abaixo.</p>`:
       `<p class="small muted">Esta entrevista não tem gravação registrada. Ela só acontece quando a vaga tem "Gravação em vídeo" ligada e o candidato autoriza no termo.</p>`}</div>
-    <label class="btn sm ghost" style="cursor:pointer;align-self:flex-start">Abrir arquivo de vídeo do computador<input type="file" accept="video/*,.webm" id="recFile" class="sr"></label>`,b=>{
-      b.closest('.card').style.maxWidth='760px';
+    <label class="btn sm ghost" style="cursor:pointer;align-self:flex-start">Abrir arquivo de vídeo do computador<input type="file" accept="video/*,.webm" id="recFile" class="sr"></label>
+    ${tl}`,b=>{
+      b.closest('.card').style.maxWidth='800px';
       b.querySelector('[data-m=x]').onclick=()=>{b.querySelectorAll('video').forEach(v=>v.pause());closeModal()};
       b.querySelectorAll('[data-rd]').forEach(x=>x.onclick=()=>{const r=mem[+x.dataset.rd];downloadBlob(r.url,r.name)});
-      b.querySelector('#recFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);b.querySelector('#recBody').innerHTML=`<video controls autoplay src="${url}" style="width:100%;border-radius:10px;background:#000"></video><div class="small" style="word-break:break-all">${esc(f.name)}</div>`};
+      b.querySelector('#recFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f);const st=(saved.find(g=>g.name===f.name)||saved[0]||{}).start||0;b.querySelector('#recBody').innerHTML=`<video controls autoplay src="${url}" data-start="${st}" style="width:100%;border-radius:10px;background:#000"></video><div class="small" style="word-break:break-all">${esc(f.name)}</div>`};
+      b.querySelectorAll('[data-seek]').forEach(x=>x.onclick=()=>{const v=b.querySelector('#recBody video');if(!v){toast('Abra o arquivo de vídeo primeiro');return}const t=Math.max(0,+x.dataset.seek-(+v.dataset.start||0)-1);try{v.currentTime=t;v.play().catch(()=>{})}catch(e){}});
     });
 }
 function vEntrevistas(){
