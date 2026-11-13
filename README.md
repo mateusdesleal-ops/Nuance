@@ -61,3 +61,9 @@ Leitura de expressões: calibra o rosto neutro nos primeiros ~12 s, reduz o peso
 ## Cuidados
 
 Indícios de emoção são hipóteses para orientar perguntas, nunca critério de aprovação. A IA não registra saúde, religião ou outros dados sensíveis, e "Dados Pessoais e Familiares" vem desligado por padrão (Lei 9.029/95, LGPD art. 11).
+
+
+## Créditos de terceiros
+- **EmotiEffLib** (ex-HSEmotion), modelo `enet_b0_8_va_mtl.onnx` em `assets/models/`, licença Apache-2.0 (ver `assets/models/LICENSE-EmotiEffLib.txt`). Usado sem alterações para reforçar a leitura de expressões, valência e ativação no navegador.
+- **MediaPipe Tasks Vision** (Google), licença Apache-2.0.
+- **ONNX Runtime Web** (Microsoft), licença MIT, carregado via jsDelivr.
