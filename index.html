@@ -1231,7 +1231,9 @@ function ferLoad(){
   if(!ferP)ferP=(async()=>{
     if(!window.ort)await loadScript(`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_V}/dist/ort.webgpu.min.js`);
     ort.env.wasm.wasmPaths=`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_V}/dist/`; ort.env.wasm.numThreads=1;
-    const buf=await (await fetch(new URL(FER_URL,location.href))).arrayBuffer();
+    let rs=null; try{rs=await fetch(new URL(FER_URL,location.href));if(!rs.ok)rs=null}catch(e){rs=null}
+    if(!rs)rs=await fetch('https://mateusdesleal-ops.github.io/Nuance/'+FER_URL);
+    const buf=await rs.arrayBuffer();
     let sess=null;
     if(navigator.gpu){try{sess=await ort.InferenceSession.create(buf,{executionProviders:['webgpu']})}catch(e){sess=null}}
     if(!sess)sess=await ort.InferenceSession.create(buf,{executionProviders:['wasm']});
